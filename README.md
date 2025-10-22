@@ -1,1 +1,2 @@
-# Group-Project-One-Project-Lume
+# Group Project: One
+# Project Lume
