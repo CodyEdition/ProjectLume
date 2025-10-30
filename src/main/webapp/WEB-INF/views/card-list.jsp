@@ -1,0 +1,105 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Lume - Cards</title>
+    <style>
+        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Semibold.otf') format('opentype'); font-weight: 600; font-style: normal; font-display: swap; }
+        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Extrabold.otf') format('opentype'); font-weight: 800; font-style: normal; font-display: swap; }
+        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Black.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+        body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; }
+        .header { background: linear-gradient(90deg, #2f2f2f 0%, #6b4a2f 40%, #ff7a00 80%, #ffa24d 100%); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .header a { color: white; text-decoration: none; margin-left: 1rem; text-shadow: 0 0 4px rgba(255,255,255,0.45); }
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 2rem; }
+        .card { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 1rem; }
+        .error { background-color: #f8d7da; color: #721c24; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; }
+        .actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+        .btn { padding: 0.5rem 1rem; background: #ffb677; color: #111111; border: 1px solid #ffb677; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; text-align: center; }
+        .btn:hover { background: #ffa055; border-color: #ffa055; }
+        .btn-danger { background: #111111; color: #ffffff; border: 1px solid #111111; }
+        .btn-danger:hover { background: #222222; border-color: #222222; }
+        .btn-secondary { background: #bfbfbf; color: #ffffff; border-color: #bfbfbf; }
+        .btn-secondary:hover { background: #a9a9a9; border-color: #a9a9a9; }
+        .btn-danger { background: #111111; color: #ffffff; }
+        .btn-danger:hover { background: #222222; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+        .meta { color: #666; font-size: 0.9rem; margin-bottom: 0.5rem; }
+        h2 { margin: 0 0 0.25rem 0; font-family: 'Debata', 'Rokiest', Arial, sans-serif; }
+
+        .retro-card {
+            position: relative;
+            background-color: #fafafa;
+            background-image:
+                radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1.5px),
+                radial-gradient(rgba(0,0,0,0.02) 0.5px, transparent 1.5px);
+            background-size: 6px 6px, 8px 8px;
+            background-position: 0 0, 3px 3px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.12);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+            padding: 1.25rem 1.25rem 1rem 1.25rem;
+            overflow: hidden;
+        }
+        .retro-title { font-family: Georgia, 'Times New Roman', serif; letter-spacing: 0.2px; }
+        .retro-meta { color: #6b6b6b; font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .retro-actions .btn { border: 1px solid rgba(0,0,0,0.08); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Project Lume</h1>
+        <div>
+            <a href="${pageContext.request.contextPath}/dashboard">Dashboard</a>
+            <a href="${pageContext.request.contextPath}/auth/logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <c:if test="${not empty error}">
+            <div class="error">${error}</div>
+        </c:if>
+
+        <div class="card">
+            <h2>Deck: ${deck.name}</h2>
+            <div class="meta">${deck.description}</div>
+            <div class="actions">
+                <a class="btn" href="${pageContext.request.contextPath}/card/new?deckId=${deck.id}">Add Card</a>
+                <a class="btn btn-secondary" href="${pageContext.request.contextPath}/dashboard">Back to Dashboard</a>
+            </div>
+        </div>
+
+        <c:choose>
+            <c:when test="${not empty cards}">
+                <div class="grid">
+                    <c:forEach var="card" items="${cards}">
+                        <div class="retro-card">
+                            <div class="retro-meta">Card #${card.id} • Difficulty: ${card.difficultyLevel}</div>
+                            <div class="retro-title">${card.frontText}</div>
+                            <div style="margin-top:0.5rem;">${card.backText}</div>
+                            <div class="actions retro-actions">
+                                <a class="btn btn-secondary" href="${pageContext.request.contextPath}/card/edit/${card.id}">Edit</a>
+                                <a class="btn btn-danger" href="${pageContext.request.contextPath}/card/delete/${card.id}"
+                                   onclick="return confirm('Delete this card?');">Delete</a>
+                            </div>
+                        </div>
+                    </c:forEach>
+                </div>
+            </c:when>
+            <c:otherwise>
+                <div class="card">
+                    <div class="meta">No cards yet in this deck.</div>
+                    <a class="btn" href="${pageContext.request.contextPath}/card/new?deckId=${deck.id}">Add your first card</a>
+                </div>
+            </c:otherwise>
+        </c:choose>
+    </div>
+</body>
+</html>
+
+

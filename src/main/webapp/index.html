@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Lume - Flashcard Study Application</title>
+    <style>
+        @font-face { font-family: 'Debata'; src: url('assets/fonts/Debata-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+        @font-face { font-family: 'Debata'; src: url('assets/fonts/Debata-Italic.otf') format('opentype'); font-weight: 400; font-style: italic; font-display: swap; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: white;
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 620px;
+        }
+        .header h1 {
+            color: #fff;
+            margin: 0 0 0.75rem 0;
+            font-size: 2.6rem;
+            text-shadow: 0 0 6px rgba(255,255,255,0.55);
+            font-family: 'Debata', Arial, sans-serif;
+        }
+        .banner {
+            background: linear-gradient(90deg, #2f2f2f 0%, #6b4a2f 40%, #ff7a00 80%, #ffa24d 100%);
+            color: #fff;
+            padding: 1.25rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.25rem;
+        }
+        .header p {
+            color: #f1f1f1;
+            margin: 0 0 2rem 0;
+            font-size: 1.1rem;
+            text-shadow: 0 0 4px rgba(255,255,255,0.45);
+            font-family: 'Debata', Arial, sans-serif;
+        }
+        .features {
+            text-align: left;
+            margin: 2rem 0;
+        }
+        .features h3 {
+            color: #333;
+            margin: 0 0 1rem 0;
+            font-family: 'Debata', Arial, sans-serif;
+        }
+        .features ul {
+            color: #666;
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+        .features li {
+            margin-bottom: 0.5rem;
+        }
+        .actions {
+            margin-top: 2rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            background-color: #ffb677;
+            color: #111111;
+            text-decoration: none;
+            border: 1px solid #ffb677;
+            border-radius: 4px;
+            margin: 0 0.5rem;
+            font-size: 1rem;
+            text-align: center;
+        }
+        .btn:hover { background-color: #ffa055; border-color: #ffa055; }
+        .btn-secondary { background-color: #bfbfbf; color: #ffffff; border-color: #bfbfbf; }
+        .btn-secondary:hover { background-color: #a9a9a9; border-color: #a9a9a9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="banner">
+            <div class="header">
+                <h1>Project Lume</h1>
+                <p>Your Personal Flashcard Study Application</p>
+            </div>
+        </div>
+        
+        <div class="features">
+            <h3>Features:</h3>
+            <ul>
+                <li>Create and manage flashcard decks</li>
+                <li>Add cards with front and back text</li>
+                <li>Set difficulty levels for cards</li>
+                <li>User authentication and personal accounts</li>
+                <li>Clean and intuitive interface</li>
+            </ul>
+        </div>
+        
+        <div class="actions">
+            <a href="auth" class="btn">Login</a>
+            <a href="auth/register" class="btn btn-secondary">Register</a>
+        </div>
+    </div>
+</body>
+</html>
