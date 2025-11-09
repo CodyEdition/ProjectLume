@@ -1,4 +1,4 @@
--- Reset database (DANGER: drops existing DB!)
+-- Reset database
 DROP DATABASE IF EXISTS projectlume;
 -- Create database
 CREATE DATABASE IF NOT EXISTS projectlume;
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS card_study_history (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Drop existing triggers if they exist (for idempotency)
+-- Drop existing triggers if they exist
 DROP TRIGGER IF EXISTS trg_users_before_insert;
 DROP TRIGGER IF EXISTS trg_users_before_update;
 
@@ -129,7 +129,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Ensure legacy tables have required columns (safe for re-runs)
+-- Ensure legacy tables have required columns
 SET @col_exists := (
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'cards' AND COLUMN_NAME = 'completed'
