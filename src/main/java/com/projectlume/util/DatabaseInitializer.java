@@ -5,8 +5,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Enumeration;
 import java.util.logging.Logger;
 
 /**
@@ -102,6 +105,25 @@ public class DatabaseInitializer {
     }
     
     /**
+     * Deregister MySQL drivers to allow clean JVM shutdown
+     * This prevents the abandoned connection cleanup thread from lingering
+     */
+    private static void deregisterDrivers() {
+        Enumeration<Driver> drivers = DriverManager.getDrivers();
+        while (drivers.hasMoreElements()) {
+            Driver driver = drivers.nextElement();
+            if (driver.getClass().getName().contains("mysql")) {
+                try {
+                    DriverManager.deregisterDriver(driver);
+                    logger.info("Deregistered MySQL driver: " + driver.getClass().getName());
+                } catch (SQLException e) {
+                    logger.warning("Failed to deregister MySQL driver: " + e.getMessage());
+                }
+            }
+        }
+    }
+    
+    /**
      * Test database connection and initialization
      * @param args Command line arguments
      */
@@ -109,18 +131,24 @@ public class DatabaseInitializer {
         System.out.println("Project Lume Database Initializer");
         System.out.println("==================================");
         
-        // Test database connection
-        if (DatabaseConnection.testConnection()) {
-            System.out.println("✓ Database connection successful");
-            
-            // Initialize database
-            if (initializeDatabase()) {
-                System.out.println("✓ Database initialization completed");
+        try {
+            // Test database connection
+            if (DatabaseConnection.testConnection()) {
+                System.out.println("✓ Database connection successful");
+                
+                // Initialize database
+                if (initializeDatabase()) {
+                    System.out.println("✓ Database initialization completed");
+                } else {
+                    System.out.println("✗ Database initialization failed");
+                }
             } else {
-                System.out.println("✗ Database initialization failed");
+                System.out.println("✗ Database connection failed");
             }
-        } else {
-            System.out.println("✗ Database connection failed");
+        } finally {
+            // Deregister MySQL drivers to allow clean shutdown
+            deregisterDrivers();
+            logger.info("Database initializer shutdown complete");
         }
     }
 }

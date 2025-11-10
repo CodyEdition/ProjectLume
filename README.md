@@ -3,7 +3,7 @@
 Simple Java web application for the Project Lume MVP.
 
 ### Prerequisites
-- JDK 17+
+- JDK 21+ (LTS)
 - Maven 3.9+
 - MySQL (configure connection in `src/main/resources/database.properties`)
 
