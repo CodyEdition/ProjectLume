@@ -51,6 +51,7 @@
             width: 100%;
             max-width: 500px;
             margin: 0 auto;
+            position: relative;
             transition: transform 0.6s;
             transform-style: preserve-3d;
         }
@@ -59,8 +60,16 @@
         }
         .study-card-front,
         .study-card-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
+            -moz-backface-visibility: hidden;
+        }
+        .study-card-front {
+            transform: rotateY(0deg);
         }
         .study-card-back {
             transform: rotateY(180deg);
@@ -86,21 +95,35 @@
         .answer-btn {
             padding: 1rem 2rem;
             font-size: 1rem;
-            border: 2px solid white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 4px;
             cursor: pointer;
             font-family: 'Courier New', monospace;
             transition: all 0.2s ease;
+            font-weight: bold;
         }
         .answer-btn.correct {
-            background-color: #00ff00;
-            color: #000;
+            background-color: #66bb6a;
+            color: #fff;
+            border-color: #66bb6a;
+            box-shadow: 0 2px 8px rgba(102, 187, 106, 0.3);
+        }
+        .answer-btn.correct:hover {
+            background-color: #4caf50;
+            border-color: #4caf50;
+            box-shadow: 0 4px 12px rgba(102, 187, 106, 0.4);
+            transform: scale(1.05);
         }
         .answer-btn.incorrect {
-            background-color: #ff0000;
+            background-color: #ef5350;
             color: #fff;
+            border-color: #ef5350;
+            box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
         }
-        .answer-btn:hover {
+        .answer-btn.incorrect:hover {
+            background-color: #e53935;
+            border-color: #e53935;
+            box-shadow: 0 4px 12px rgba(239, 83, 80, 0.4);
             transform: scale(1.05);
         }
         .flip-btn {
@@ -216,8 +239,41 @@
     
     <script>
         function flipCard() {
-            document.getElementById('studyCard').classList.add('flipped');
+            var card = document.getElementById('studyCard');
+            var frontCard = card.querySelector('.study-card-front');
+            var backCard = card.querySelector('.study-card-back');
+            
+            // Temporarily make cards visible to measure (if needed)
+            // Get heights using getBoundingClientRect for accurate measurement
+            var frontHeight = frontCard.getBoundingClientRect().height;
+            var backHeight = backCard.getBoundingClientRect().height;
+            var maxHeight = Math.max(frontHeight, backHeight);
+            
+            // Set card height to prevent collapse
+            if (maxHeight > 0) {
+                card.style.height = maxHeight + 'px';
+            }
+            
+            // Flip the card
+            card.classList.add('flipped');
         }
+        
+        // Set initial height on page load
+        window.addEventListener('load', function() {
+            var card = document.getElementById('studyCard');
+            if (card) {
+                var frontCard = card.querySelector('.study-card-front');
+                if (frontCard) {
+                    // Use setTimeout to ensure DOM is fully rendered
+                    setTimeout(function() {
+                        var height = frontCard.getBoundingClientRect().height;
+                        if (height > 0) {
+                            card.style.height = height + 'px';
+                        }
+                    }, 100);
+                }
+            }
+        });
     </script>
 </body>
 </html>

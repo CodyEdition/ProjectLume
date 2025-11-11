@@ -39,13 +39,13 @@
             color: #fff;
             margin: 0;
             text-shadow: 0 0 6px rgba(255,255,255,0.55);
-            font-family: 'Debata', 'Rokiest', Arial, sans-serif;
+            font-family: 'Debata', Arial, sans-serif;
         }
         .header p {
             color: #f1f1f1;
             margin: 0.5rem 0 0 0;
             text-shadow: 0 0 4px rgba(255,255,255,0.45);
-            font-family: 'Debata', 'Rokiest', Arial, sans-serif;
+            font-family: 'Debata', Arial, sans-serif;
         }
         .form-group {
             margin-bottom: 1rem;
@@ -66,7 +66,7 @@
         }
         .form-group input:focus {
             outline: none;
-            border-color: #007bff;
+            border-color: #ffb677;
         }
         .btn {
             width: 100%;
@@ -105,7 +105,7 @@
             margin-top: 1rem;
         }
         .links a {
-            color: #007bff;
+            color: #ff7a00;
             text-decoration: none;
         }
         .links a:hover {

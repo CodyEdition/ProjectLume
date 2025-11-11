@@ -12,7 +12,7 @@
         h1 { margin: 0 0 0.5rem 0; color: #333; }
         p { color: #666; }
         .code { display: inline-block; background: #eee; padding: 0.25rem 0.5rem; border-radius: 4px; margin-left: 0.5rem; }
-        a { color: #007bff; text-decoration: none; }
+        a { color: #ff7a00; text-decoration: none; }
         a:hover { text-decoration: underline; }
     </style>
     </head>

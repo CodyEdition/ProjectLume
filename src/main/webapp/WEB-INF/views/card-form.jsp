@@ -6,14 +6,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Lume - Card Form</title>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/card-styles.css">
     <style>
-        /* Rokiest font family (OTF files) */
-        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
-        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
-        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Semibold.otf') format('opentype'); font-weight: 600; font-style: normal; font-display: swap; }
-        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
-        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Extrabold.otf') format('opentype'); font-weight: 800; font-style: normal; font-display: swap; }
-        @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Black.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+        @font-face { font-family: 'Debata'; src: url('${pageContext.request.contextPath}/assets/fonts/Debata-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
         body {
             font-family: Arial, sans-serif;
             background-color: #f5f5f5;
@@ -21,7 +16,7 @@
             padding: 0;
         }
         .header {
-            background-color: #007bff;
+            background: linear-gradient(90deg, #2f2f2f 0%, #6b4a2f 40%, #ff7a00 80%, #ffa24d 100%);
             color: white;
             padding: 1rem 2rem;
             display: flex;
@@ -31,7 +26,7 @@
         .header h1 {
             margin: 0;
             text-shadow: 0 0 6px rgba(255,255,255,0.55);
-            font-family: 'Debata', 'Rokiest', Arial, sans-serif;
+            font-family: 'Debata', Arial, sans-serif;
         }
         .header a {
             color: white;
@@ -39,11 +34,11 @@
             padding: 0.5rem 1rem;
             border: 1px solid white;
             border-radius: 4px;
-            text-shadow: 0 0 4px rgba(255,255,255,0.45);
+            text-shadow: 0 0 5px rgba(255,255,255,0.6);
         }
         .header a:hover {
             background-color: white;
-            color: #007bff;
+            color: #ff7a00;
         }
         .container {
             max-width: 600px;
@@ -79,7 +74,7 @@
         .form-group textarea:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #007bff;
+            border-color: #ffb677;
         }
         .form-group textarea {
             height: 100px;
@@ -120,20 +115,21 @@
             border-radius: 4px;
             margin-bottom: 1rem;
         }
-        /* Retro preview style with CSS noise */
-        .retro-card-preview {
-            position: relative;
-            background-color: #fafafa;
-            background-image:
-                radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1.5px),
-                radial-gradient(rgba(0,0,0,0.02) 0.5px, transparent 1.5px);
-            background-size: 6px 6px, 8px 8px;
-            background-position: 0 0, 3px 3px;
-            border-radius: 12px;
-            border: 1px solid rgba(0,0,0,0.12);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.10);
-            padding: 1rem;
-            margin-top: 1rem;
+        .preview-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid #eee;
+        }
+        .preview-section h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-family: 'Debata', Arial, sans-serif;
+        }
+        .preview-card-wrapper {
+            display: flex;
+            justify-content: center;
+            max-width: 400px;
+            margin: 0 auto;
         }   
     </style>
 </head>
@@ -145,7 +141,7 @@
     
     <div class="container">
         <div class="form-container">
-            <h2 style="font-family: 'Debata', 'Rokiest', Arial, sans-serif;">${empty card ? 'Create New Card' : 'Edit Card'}</h2>
+            <h2 style="font-family: 'Debata', Arial, sans-serif;">${empty card ? 'Create New Card' : 'Edit Card'}</h2>
             
             <div class="deck-info">
                 <strong>Deck:</strong> ${deck.name}
@@ -185,11 +181,117 @@
                 </div>
             </form>
 
-                <div class="retro-card-preview">
-                <div style="color:#6b6b6b; font-size:0.9rem; margin-bottom:0.5rem;">Preview</div>
-                <div><c:out value="${card.frontText}" default="(front text)"/></div>
-                <div style="margin-top:0.5rem;"><c:out value="${card.backText}" default="(back text)"/></div>
+            <div class="preview-section">
+                <h3>Preview</h3>
+                <div class="preview-card-wrapper">
+                    <%
+                        com.projectlume.model.Card previewCard = (com.projectlume.model.Card) pageContext.getAttribute("card");
+                        String previewDifficulty = "MEDIUM";
+                        String badgeClass = "blue";
+                        
+                        if (previewCard != null && previewCard.getDifficultyLevel() != null) {
+                            previewDifficulty = previewCard.getDifficultyLevel().toString();
+                            if ("EASY".equals(previewDifficulty)) {
+                                badgeClass = "green";
+                            } else if ("MEDIUM".equals(previewDifficulty)) {
+                                badgeClass = "blue";
+                            } else if ("HARD".equals(previewDifficulty)) {
+                                badgeClass = "red";
+                            }
+                        }
+                        pageContext.setAttribute("previewDifficulty", previewDifficulty);
+                        pageContext.setAttribute("previewBadgeClass", badgeClass);
+                        
+                        String previewSerial = "NOV11.25.11";
+                        if (previewCard != null && previewCard.getCreatedAt() != null) {
+                            java.time.LocalDateTime date = previewCard.getCreatedAt();
+                            String[] monthNames = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", 
+                                                  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+                            String month = monthNames[date.getMonthValue() - 1];
+                            String day = String.format("%02d", date.getDayOfMonth());
+                            String yearShort = String.format("%02d", date.getYear() % 100);
+                            previewSerial = month + day + "." + yearShort + "." + day;
+                        }
+                        pageContext.setAttribute("previewSerial", previewSerial);
+                    %>
+                    <div class="collectible-card card-scanlines">
+                        <div class="card-specs-bar">
+                            <span>CARD | ID: ${not empty card && card.id != null ? card.id : 'NEW'}</span>
+                            <span class="card-badge ${previewBadgeClass}" id="previewBadge">${previewDifficulty}</span>
+                        </div>
+                        
+                        <div class="card-artwork-panel">
+                            <div class="card-holographic"></div>
+                            
+                            <div class="card-content">
+                                <div>
+                                    <div class="card-number">001</div>
+                                    <div class="card-title" id="previewFrontText">
+                                        <c:out value="${not empty card ? card.frontText : '(front text)'}" default="(front text)"/>
+                                    </div>
+                                    <div class="card-description" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+                                        <strong>Answer:</strong><br/>
+                                        <span id="previewBackText">
+                                            <c:out value="${not empty card ? card.backText : '(back text)'}" default="(back text)"/>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-serial">${previewSerial}S3</div>
+                    </div>
+                </div>
             </div>
+            
+            <script>
+                // Update preview in real-time as user types
+                document.addEventListener('DOMContentLoaded', function() {
+                    var frontTextInput = document.getElementById('frontText');
+                    var backTextInput = document.getElementById('backText');
+                    var difficultySelect = document.getElementById('difficultyLevel');
+                    var previewFrontText = document.getElementById('previewFrontText');
+                    var previewBackText = document.getElementById('previewBackText');
+                    var previewBadge = document.getElementById('previewBadge');
+                    
+                    function updatePreview() {
+                        if (frontTextInput && previewFrontText) {
+                            previewFrontText.textContent = frontTextInput.value || '(front text)';
+                        }
+                        if (backTextInput && previewBackText) {
+                            previewBackText.textContent = backTextInput.value || '(back text)';
+                        }
+                        if (difficultySelect && previewBadge) {
+                            var difficulty = difficultySelect.value;
+                            previewBadge.textContent = difficulty;
+                            
+                            // Update badge class
+                            previewBadge.className = 'card-badge';
+                            if (difficulty === 'EASY') {
+                                previewBadge.classList.add('green');
+                            } else if (difficulty === 'MEDIUM') {
+                                previewBadge.classList.add('blue');
+                            } else if (difficulty === 'HARD') {
+                                previewBadge.classList.add('red');
+                            }
+                        }
+                    }
+                    
+                    // Initialize preview on page load
+                    updatePreview();
+                    
+                    // Update preview on input changes
+                    if (frontTextInput) {
+                        frontTextInput.addEventListener('input', updatePreview);
+                    }
+                    if (backTextInput) {
+                        backTextInput.addEventListener('input', updatePreview);
+                    }
+                    if (difficultySelect) {
+                        difficultySelect.addEventListener('change', updatePreview);
+                    }
+                });
+            </script>
         </div>
     </div>
 </body>

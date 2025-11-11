@@ -46,7 +46,7 @@
         }
         .header a:hover {
             background-color: white;
-            color: #007bff;
+            color: #ff7a00;
         }
         .container {
             max-width: 1200px;
