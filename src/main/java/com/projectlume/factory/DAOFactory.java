@@ -1,7 +1,9 @@
 package com.projectlume.factory;
 
 import com.projectlume.dao.CardDAO;
+import com.projectlume.dao.CardStudyHistoryDAO;
 import com.projectlume.dao.DeckDAO;
+import com.projectlume.dao.StudySessionDAO;
 import com.projectlume.dao.UserDAO;
 
 /**
@@ -32,5 +34,21 @@ public class DAOFactory {
      */
     public static CardDAO createCardDAO() {
         return new CardDAO();
+    }
+    
+    /**
+     * Creates a new StudySessionDAO instance
+     * @return StudySessionDAO instance
+     */
+    public static StudySessionDAO createStudySessionDAO() {
+        return new StudySessionDAO();
+    }
+    
+    /**
+     * Creates a new CardStudyHistoryDAO instance
+     * @return CardStudyHistoryDAO instance
+     */
+    public static CardStudyHistoryDAO createCardStudyHistoryDAO() {
+        return new CardStudyHistoryDAO();
     }
 }

@@ -1,11 +1,13 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Lume - Cards</title>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/card-styles.css">
     <style>
         @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
         @font-face { font-family: 'Rokiest'; src: url('${pageContext.request.contextPath}/assets/fonts/Rokiest-Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
@@ -28,7 +30,9 @@
         .btn-secondary:hover { background: #a9a9a9; border-color: #a9a9a9; }
         .btn-danger { background: #111111; color: #ffffff; }
         .btn-danger:hover { background: #222222; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; padding: 1rem 0; }
+        .card-section { margin-top: 2rem; }
+        .card-section h2 { color: #333; margin-bottom: 1rem; }
         .meta { color: #666; font-size: 0.9rem; margin-bottom: 0.5rem; }
         h2 { margin: 0 0 0.25rem 0; font-family: 'Debata', 'Rokiest', Arial, sans-serif; }
 
@@ -76,19 +80,71 @@
 
         <c:choose>
             <c:when test="${not empty cards}">
-                <div class="grid">
-                    <c:forEach var="card" items="${cards}">
-                        <div class="retro-card">
-                            <div class="retro-meta">Card #${card.id} • Difficulty: ${card.difficultyLevel}</div>
-                            <div class="retro-title">${card.frontText}</div>
-                            <div style="margin-top:0.5rem;">${card.backText}</div>
-                            <div class="actions retro-actions">
-                                <a class="btn btn-secondary" href="${pageContext.request.contextPath}/card/edit/${card.id}">Edit</a>
-                                <a class="btn btn-danger" href="${pageContext.request.contextPath}/card/delete/${card.id}"
-                                   onclick="return confirm('Delete this card?');">Delete</a>
+                <div class="card-section">
+                    <h2>Cards in ${deck.name}</h2>
+                    <div class="grid">
+                        <c:forEach var="card" items="${cards}" varStatus="loop">
+                            <c:set var="cardNumber" value="${loop.index + 1}" />
+                            <c:set var="cardNumberPadded" value="${cardNumber < 10 ? '00' : (cardNumber < 100 ? '0' : '')}${cardNumber}" />
+                            <%
+                                com.projectlume.model.Card card = (com.projectlume.model.Card) pageContext.getAttribute("card");
+                                String dateCode = "NOV10.25.10";
+                                if (card != null && card.getCreatedAt() != null) {
+                                    java.time.LocalDateTime date = card.getCreatedAt();
+                                    String[] monthNames = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", 
+                                                          "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+                                    String month = monthNames[date.getMonthValue() - 1];
+                                    String day = String.format("%02d", date.getDayOfMonth());
+                                    String yearShort = String.format("%02d", date.getYear() % 100);
+                                    dateCode = month + day + "." + yearShort + "." + day;
+                                }
+                                pageContext.setAttribute("dateCode", dateCode);
+                            %>
+                            <c:set var="serialNumber" value="${dateCode}S3" />
+                            <c:set var="badgeClass" value="" />
+                            <c:choose>
+                                <c:when test="${card.difficultyLevel == 'EASY'}">
+                                    <c:set var="badgeClass" value="green" />
+                                </c:when>
+                                <c:when test="${card.difficultyLevel == 'MEDIUM'}">
+                                    <c:set var="badgeClass" value="blue" />
+                                </c:when>
+                                <c:when test="${card.difficultyLevel == 'HARD'}">
+                                    <c:set var="badgeClass" value="orange" />
+                                </c:when>
+                            </c:choose>
+                            
+                            <div class="collectible-card card-scanlines">
+                                <div class="card-specs-bar">
+                                    <span>CARD | ID: ${card.id}</span>
+                                    <span class="card-badge ${badgeClass}">${card.difficultyLevel}</span>
+                                </div>
+                                
+                                <div class="card-artwork-panel">
+                                    <div class="card-holographic"></div>
+                                    
+                                    <div class="card-content">
+                                        <div>
+                                            <div class="card-number">${cardNumberPadded}</div>
+                                            <div class="card-title">${card.frontText}</div>
+                                            <div class="card-description" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+                                                <strong>Answer:</strong><br/>
+                                                ${card.backText}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card-actions">
+                                            <a href="${pageContext.request.contextPath}/card/edit/${card.id}" class="btn btn-secondary" title="Edit card">✎</a>
+                                            <a href="${pageContext.request.contextPath}/card/delete/${card.id}" class="btn btn-danger"
+                                               onclick="return confirm('Delete this card?');" title="Delete card">✕</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card-serial">${serialNumber}</div>
                             </div>
-                        </div>
-                    </c:forEach>
+                        </c:forEach>
+                    </div>
                 </div>
             </c:when>
             <c:otherwise>
