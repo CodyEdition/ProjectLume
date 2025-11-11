@@ -17,6 +17,13 @@ The WAR will be produced under `target/`.
 - Deploy the generated WAR (`target/*.war`) to your servlet container (e.g. Tomcat/Jetty),
 
 or
+
+```bash
+mvn cargo:run
+```
+
+or
+
 - Run the app with your preferred container locally.
 
 ### Database Initialization
