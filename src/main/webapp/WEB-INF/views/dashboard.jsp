@@ -145,6 +145,7 @@
         <div class="user-info">
             <span>Welcome, ${user.firstName}!</span>
             <a href="${pageContext.request.contextPath}/profile">Profile</a>
+            <a href="${pageContext.request.contextPath}/study/history">Study History</a>
             <a href="${pageContext.request.contextPath}/auth/logout">Logout</a>
         </div>
     </div>
