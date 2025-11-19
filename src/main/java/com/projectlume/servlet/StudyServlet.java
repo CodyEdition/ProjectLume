@@ -56,9 +56,11 @@ public class StudyServlet extends HttpServlet {
                 Long deckId = Long.parseLong(deckIdStr);
                 startStudySession(request, response, deckId);
             } catch (NumberFormatException e) {
-                // Check if it's /study/answer
+                // Check if it's /study/answer or /study/complete
                 if (pathInfo.equals("/answer")) {
                     showCardAnswer(request, response);
+                } else if (pathInfo.equals("/complete")) {
+                    completeStudySession(request, response);
                 } else {
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST);
                 }
