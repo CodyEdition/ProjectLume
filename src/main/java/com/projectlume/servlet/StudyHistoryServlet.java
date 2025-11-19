@@ -17,6 +17,7 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -58,12 +59,14 @@ public class StudyHistoryServlet extends HttpServlet {
         }
 
         // Convert relevant statistics to StudySessionDTO format, add to list
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd, h:mma");
         for (int i = 0; i < sessionList.size(); i++) {
             StudySession session = sessionList.get(i);
 
-            // TODO: Convert date to a more readable format
+            // Convert date to a more readable format
             // e.g. 2025-11-17T03:00:04 becomes 2025-11-17, 3:00am (or similar)
             LocalDateTime date = session.getSessionDate();
+            String formattedDate = (date != null) ? dateFormatter.format(date) : "";
 
             // Fetch the title of the deck that was used in the session
             Long deckId = session.getDeckId();
@@ -72,8 +75,7 @@ public class StudyHistoryServlet extends HttpServlet {
                 deck = deckDao.findById(deckId);
             } catch (SQLException e) {
                 logger.severe("Error fetching deck " + i + ": " + e.getMessage());
-                // TODO: Not sure if "Failed to fetch deck" should be more descriptive (e.g. "...deck 3 or ...deck 3 (ID #{ID}))"
-                request.setAttribute("error", "Failed to fetch deck");
+                request.setAttribute("error", "Failed to fetch deck (ID: " + deckId + ")");
                 request.getRequestDispatcher("/WEB-INF/views/error.jsp").forward(request, response);
             }
             String deckName = (deck != null ? deck.getName() : "");
@@ -84,7 +86,7 @@ public class StudyHistoryServlet extends HttpServlet {
             // Truncate to 2 decimal places, append percentage symbol
             String formattedAccuracy = String.format("%.2f%%", accuracy);
 
-            dtoList.add(new StudySessionDTO(date, deckName, studyCount, formattedAccuracy));
+            dtoList.add(new StudySessionDTO(formattedDate, deckName, studyCount, formattedAccuracy));
         }
 
         request.setAttribute("sessions", dtoList);

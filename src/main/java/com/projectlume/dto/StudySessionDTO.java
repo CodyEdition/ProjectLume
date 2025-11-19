@@ -1,22 +1,20 @@
 package com.projectlume.dto;
 
-import java.time.LocalDateTime;
-
 public class StudySessionDTO {
-    private final LocalDateTime date;
+    private final String formattedDate;
     private final String name;
     private final int studyCount;
     private final String formattedAccuracy;
 
-    public StudySessionDTO(LocalDateTime date, String name, int studyCount, String formattedAccuracy) {
-        this.date = date;
+    public StudySessionDTO(String formattedDate, String name, int studyCount, String formattedAccuracy) {
+        this.formattedDate = formattedDate;
         this.name = name;
         this.studyCount = studyCount;
         this.formattedAccuracy = formattedAccuracy;
     }
 
-    public LocalDateTime getDate() {
-        return date;
+    public String getDate() {
+        return formattedDate;
     }
 
     public String getName() {
