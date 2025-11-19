@@ -23,7 +23,7 @@
         .header h1 {
             margin: 0;
             text-shadow: 0 0 6px rgba(255,255,255,0.55);
-            font-family: 'Debata', 'Rokiest', Arial, sans-serif;
+            font-family: 'Debata', Arial, sans-serif;
         }
         .header a {
             color: white;
@@ -64,7 +64,7 @@
         .card-section { margin-top: 2rem; }
         .card-section h2 { color: #333; margin-bottom: 1rem; }
         .meta { color: #666; font-size: 0.9rem; margin-bottom: 0.5rem; }
-        h2 { margin: 0 0 0.25rem 0; font-family: 'Debata', 'Rokiest', Arial, sans-serif; }
+        h2 { margin: 0 0 0.25rem 0; font-family: 'Debata', Arial, sans-serif; }
 
         .retro-card {
             position: relative;

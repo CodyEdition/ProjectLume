@@ -28,7 +28,7 @@
         .header h1 {
             margin: 0;
             text-shadow: 0 0 6px rgba(255,255,255,0.55);
-            font-family: 'Debata', 'Rokiest', Arial, sans-serif;
+            font-family: 'Debata', Arial, sans-serif;
         }
         .header .user-info {
             display: flex;
