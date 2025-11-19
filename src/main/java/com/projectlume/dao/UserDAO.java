@@ -35,6 +35,9 @@ public class UserDAO implements UserRepository {
     private static final String UPDATE_USER = 
         "UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ?, updated_at = ? WHERE id = ?";
     
+    private static final String UPDATE_USER_PASSWORD = 
+        "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?";
+    
     private static final String DELETE_USER = 
         "UPDATE users SET is_active = false, updated_at = ? WHERE id = ?";
     
@@ -173,6 +176,32 @@ public class UserDAO implements UserRepository {
             user.setUpdatedAt(now);
             logger.info("User updated successfully: " + user.getUsername());
             return user;
+        }
+    }
+    
+    /**
+     * Update user password
+     * @param userId User ID
+     * @param passwordHash Hashed password
+     * @return true if password updated successfully
+     * @throws SQLException if database error occurs
+     */
+    public boolean updatePassword(Long userId, String passwordHash) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(UPDATE_USER_PASSWORD)) {
+            
+            LocalDateTime now = LocalDateTime.now();
+            statement.setString(1, passwordHash);
+            statement.setTimestamp(2, Timestamp.valueOf(now));
+            statement.setLong(3, userId);
+            
+            int affectedRows = statement.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Updating password failed, no rows affected.");
+            }
+            
+            logger.info("Password updated successfully for user ID: " + userId);
+            return true;
         }
     }
     

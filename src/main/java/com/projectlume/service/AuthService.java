@@ -140,17 +140,25 @@ public class AuthService {
                 throw new AuthException("User not found");
             }
             
-            // Verify current password
-            if (!BCrypt.checkpw(currentPassword, user.getPasswordHash())) {
+            // Verify current password (supports bcrypt or plaintext fallback for demo-only data)
+            String stored = user.getPasswordHash();
+            boolean isBcrypt = stored != null && (stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$"));
+            boolean valid = false;
+            if (isBcrypt) {
+                valid = BCrypt.checkpw(currentPassword, stored);
+            } else {
+                // Plaintext fallback for demo data
+                valid = stored != null && stored.equals(currentPassword);
+            }
+            if (!valid) {
                 throw new AuthException("Current password is incorrect");
             }
             
             // Hash new password
             String newPasswordHash = BCrypt.hashpw(newPassword, BCrypt.gensalt());
-            user.setPasswordHash(newPasswordHash);
             
-            // Update user
-            userDAO.update(user);
+            // Update password in database
+            userDAO.updatePassword(userId, newPasswordHash);
             
             logger.info("Password changed successfully for user: " + user.getUsername());
             return true;
