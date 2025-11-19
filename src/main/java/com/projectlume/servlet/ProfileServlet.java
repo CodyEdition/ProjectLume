@@ -24,6 +24,7 @@ public class ProfileServlet extends HttpServlet {
 
         User user = (User) session.getAttribute("user");
         request.setAttribute("user", user);
+        request.setAttribute("currentPage", "profile");
         request.getRequestDispatcher("/WEB-INF/views/profile.jsp").forward(request, response);
     }
 }

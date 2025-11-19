@@ -90,6 +90,7 @@ public class StudyHistoryServlet extends HttpServlet {
         }
 
         request.setAttribute("sessions", dtoList);
+        request.setAttribute("currentPage", "studyHistory");
 
         // Display study history
         request.getRequestDispatcher("/WEB-INF/views/study-history.jsp").forward(request, response);

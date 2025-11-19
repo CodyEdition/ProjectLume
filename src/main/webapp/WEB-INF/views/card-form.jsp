@@ -26,7 +26,13 @@
         .header h1 {
             margin: 0;
             text-shadow: 0 0 6px rgba(255,255,255,0.55);
-            font-family: 'Debata', Arial, sans-serif;
+            font-family: 'Debata', 'Rokiest', Arial, sans-serif;
+        }
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-shadow: 0 0 5px rgba(255,255,255,0.6);
         }
         .header a {
             color: white;
@@ -134,10 +140,7 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Project Lume</h1>
-        <a href="${pageContext.request.contextPath}/card?deckId=${deck.id}">Back to Cards</a>
-    </div>
+    <jsp:include page="/WEB-INF/views/includes/header.jsp" />
     
     <div class="container">
         <div class="form-container">

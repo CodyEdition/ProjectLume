@@ -33,14 +33,20 @@
             border-radius: 4px;
             text-shadow: 0 0 5px rgba(255,255,255,0.6);
         }
-        .header a:hover {
-            background-color: white;
-            color: #ff7a00;
-        }
         .header > div {
             display: flex;
             align-items: center;
             gap: 1rem;
+        }
+        .header a:hover {
+            background-color: white;
+            color: #ff7a00;
+        }
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-shadow: 0 0 5px rgba(255,255,255,0.6);
         }
         .container { max-width: 1100px; margin: 2rem auto; padding: 0 2rem; }
         .card { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 1rem; }
@@ -80,14 +86,7 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Project Lume</h1>
-        <div>
-            <a href="${pageContext.request.contextPath}/dashboard">Dashboard</a>
-            <a href="${pageContext.request.contextPath}/study/history">Study History</a>
-            <a href="${pageContext.request.contextPath}/auth/logout">Logout</a>
-        </div>
-    </div>
+    <jsp:include page="/WEB-INF/views/includes/header.jsp" />
 
     <div class="container">
         <c:if test="${not empty error}">

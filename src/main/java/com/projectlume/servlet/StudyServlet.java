@@ -131,6 +131,12 @@ public class StudyServlet extends HttpServlet {
             httpSession.setAttribute("studyCardIndex", 0);
             httpSession.setAttribute("studyStartTime", System.currentTimeMillis());
             
+            // Get user from session for display in header
+            User user = (User) httpSession.getAttribute("user");
+            if (user != null) {
+                request.setAttribute("user", user);
+            }
+            
             // Show first card
             Card currentCard = cards.get(0);
             request.setAttribute("card", currentCard);
@@ -179,6 +185,12 @@ public class StudyServlet extends HttpServlet {
             
             Card currentCard = cards.get(cardIndex);
             Deck deck = deckDAO.findById(deckId);
+            
+            // Get user from session for display in header
+            User user = (User) httpSession.getAttribute("user");
+            if (user != null) {
+                request.setAttribute("user", user);
+            }
             
             request.setAttribute("card", currentCard);
             request.setAttribute("deck", deck);
@@ -241,6 +253,12 @@ public class StudyServlet extends HttpServlet {
                 Long deckId = (Long) httpSession.getAttribute("studyDeckId");
                 Deck deck = deckDAO.findById(deckId);
                 
+                // Get user from session for display in header
+                User user = (User) httpSession.getAttribute("user");
+                if (user != null) {
+                    request.setAttribute("user", user);
+                }
+                
                 request.setAttribute("card", nextCard);
                 request.setAttribute("deck", deck);
                 request.setAttribute("cardIndex", nextIndex);
@@ -285,9 +303,23 @@ public class StudyServlet extends HttpServlet {
             // End session
             StudySession session = studyService.endStudySession(sessionId, durationMinutes);
             
-            // Get deck info
+            // Get deck info - use session's deckId as fallback if session attribute is null
             Long deckId = (Long) httpSession.getAttribute("studyDeckId");
-            Deck deck = deckDAO.findById(deckId);
+            if (deckId == null && session != null) {
+                deckId = session.getDeckId();
+            }
+            
+            Deck deck = null;
+            if (deckId != null) {
+                deck = deckDAO.findById(deckId);
+            }
+            
+            // If deck still cannot be found, redirect to dashboard
+            if (deck == null) {
+                logger.warning("Deck not found for deckId: " + deckId + ", redirecting to dashboard");
+                response.sendRedirect(request.getContextPath() + "/dashboard");
+                return;
+            }
             
             // Clear study state from session
             httpSession.removeAttribute("studySessionId");
@@ -295,6 +327,12 @@ public class StudyServlet extends HttpServlet {
             httpSession.removeAttribute("studyCards");
             httpSession.removeAttribute("studyCardIndex");
             httpSession.removeAttribute("studyStartTime");
+            
+            // Get user from session for display in header
+            User user = (User) httpSession.getAttribute("user");
+            if (user != null) {
+                request.setAttribute("user", user);
+            }
             
             // Show results
             request.setAttribute("session", session);

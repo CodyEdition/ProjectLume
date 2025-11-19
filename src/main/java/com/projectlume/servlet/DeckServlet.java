@@ -3,6 +3,7 @@ package com.projectlume.servlet;
 import com.projectlume.dao.DeckDAO;
 import com.projectlume.factory.DAOFactory;
 import com.projectlume.model.Deck;
+import com.projectlume.model.User;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -43,6 +44,7 @@ public class DeckServlet extends HttpServlet {
             listDecks(request, response);
         } else if (pathInfo.equals("/new")) {
             // Show new deck form
+            setUserAttribute(request);
             request.getRequestDispatcher("/WEB-INF/views/deck-form.jsp").forward(request, response);
         } else if (pathInfo.startsWith("/edit/")) {
             // Show edit deck form
@@ -87,12 +89,14 @@ public class DeckServlet extends HttpServlet {
             List<Deck> decks = deckDAO.findByUserId(userId);
             
             request.setAttribute("decks", decks);
+            request.setAttribute("currentPage", "dashboard");
             // Reuse dashboard view to list decks; dedicated deck-list.jsp not present
             request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp").forward(request, response);
             
         } catch (SQLException e) {
             logger.severe("Error listing decks: " + e.getMessage());
             request.setAttribute("error", "Failed to load decks");
+            request.setAttribute("currentPage", "dashboard");
             request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp").forward(request, response);
         }
     }
@@ -108,6 +112,7 @@ public class DeckServlet extends HttpServlet {
             Long userId = getCurrentUserId(request);
             
             if (name == null || name.trim().isEmpty()) {
+                setUserAttribute(request);
                 request.setAttribute("error", "Deck name is required");
                 request.getRequestDispatcher("/WEB-INF/views/deck-form.jsp").forward(request, response);
                 return;
@@ -121,6 +126,7 @@ public class DeckServlet extends HttpServlet {
             
         } catch (SQLException e) {
             logger.severe("Error creating deck: " + e.getMessage());
+            setUserAttribute(request);
             request.setAttribute("error", "Failed to create deck");
             request.getRequestDispatcher("/WEB-INF/views/deck-form.jsp").forward(request, response);
         }
@@ -149,6 +155,7 @@ public class DeckServlet extends HttpServlet {
                 return;
             }
             
+            setUserAttribute(request);
             request.setAttribute("deck", deck);
             request.getRequestDispatcher("/WEB-INF/views/deck-form.jsp").forward(request, response);
             
@@ -188,6 +195,7 @@ public class DeckServlet extends HttpServlet {
             String description = request.getParameter("description");
             
             if (name == null || name.trim().isEmpty()) {
+                setUserAttribute(request);
                 request.setAttribute("error", "Deck name is required");
                 request.setAttribute("deck", deck);
                 request.getRequestDispatcher("/WEB-INF/views/deck-form.jsp").forward(request, response);
@@ -205,6 +213,7 @@ public class DeckServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         } catch (SQLException e) {
             logger.severe("Error updating deck: " + e.getMessage());
+            setUserAttribute(request);
             request.setAttribute("error", "Failed to update deck");
             request.getRequestDispatcher("/WEB-INF/views/deck-form.jsp").forward(request, response);
         }
@@ -259,6 +268,23 @@ public class DeckServlet extends HttpServlet {
      */
     private Long getCurrentUserId(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
-        return (Long) session.getAttribute("userId");
+        if (session == null) {
+            return null;
+        }
+        User user = (User) session.getAttribute("user");
+        return user != null ? user.getId() : null;
+    }
+    
+    /**
+     * Set user attribute in request for JSP pages
+     */
+    private void setUserAttribute(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            User user = (User) session.getAttribute("user");
+            if (user != null) {
+                request.setAttribute("user", user);
+            }
+        }
     }
 }

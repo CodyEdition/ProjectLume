@@ -47,11 +47,13 @@ public class DashboardServlet extends HttpServlet {
             
             request.setAttribute("user", user);
             request.setAttribute("decks", decks);
+            request.setAttribute("currentPage", "dashboard");
             request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp").forward(request, response);
             
         } catch (SQLException e) {
             logger.severe("Error loading dashboard: " + e.getMessage());
             request.setAttribute("error", "Failed to load dashboard");
+            request.setAttribute("currentPage", "dashboard");
             request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp").forward(request, response);
         }
     }

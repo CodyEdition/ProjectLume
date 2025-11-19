@@ -104,11 +104,11 @@
     height: 40px;
     background: linear-gradient(
         135deg,
-        #ff006e 0%,
-        #8338ec 25%,
-        #3a86ff 50%,
-        #06ffa5 75%,
-        #ffbe0b 100%
+        #2f2f2f 0%,
+        #6b4a2f 25%,
+        #ff7a00 50%,
+        #ffa24d 75%,
+        #ffa24d 100%
     );
     background-size: 200% 200%;
     border-radius: 4px;

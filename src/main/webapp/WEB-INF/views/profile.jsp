@@ -102,15 +102,7 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Project Lume</h1>
-        <div class="user-info">
-            <span>Welcome, ${user.firstName}!</span>
-            <a href="${pageContext.request.contextPath}/dashboard">Dashboard</a>
-            <a href="${pageContext.request.contextPath}/study/history">Study History</a>
-            <a href="${pageContext.request.contextPath}/auth/logout">Logout</a>
-        </div>
-    </div>
+    <jsp:include page="/WEB-INF/views/includes/header.jsp" />
     <div class="container">
         <div class="card">
             <h2>Your Profile</h2>
