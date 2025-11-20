@@ -39,4 +39,14 @@
         <listener-class>com.projectlume.util.DatabaseStartupListener</listener-class>
     </listener>
     
+    <!-- JSP Configuration -->
+    <jsp-config>
+        <jsp-property-group>
+            <url-pattern>*.jsp</url-pattern>
+            <url-pattern>*.jspx</url-pattern>
+            <page-encoding>UTF-8</page-encoding>
+            <scripting-invalid>false</scripting-invalid>
+        </jsp-property-group>
+    </jsp-config>
+    
 </web-app>

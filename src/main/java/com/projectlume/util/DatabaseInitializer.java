@@ -71,29 +71,71 @@ public class DatabaseInitializer {
     
     /**
      * Execute SQL script
+     * Handles DELIMITER statements (MySQL client commands) by skipping them
+     * and properly processing multi-line statements with custom delimiters
      * @param connection Database connection
      * @param sqlScript SQL script to execute
      * @throws SQLException if execution fails
      */
     private static void executeSQLScript(Connection connection, String sqlScript) throws SQLException {
         String normalized = sqlScript.replace("\r\n", "\n").replace('\r', '\n');
-        String[] statements = normalized.split(";\n");
-
+        
+        // Process the script line by line to handle DELIMITER statements
+        StringBuilder currentStatement = new StringBuilder();
+        String currentDelimiter = ";";
+        
         try (Statement statement = connection.createStatement()) {
-            for (String raw : statements) {
-                // Remove inline comment lines and collapse whitespace
-                StringBuilder cleaned = new StringBuilder();
-                for (String line : raw.split("\n")) {
-                    String t = line.trim();
-                    if (t.isEmpty() || t.startsWith("--")) {
-                        continue;
-                    }
-                    cleaned.append(line).append('\n');
-                }
-                String sql = cleaned.toString().trim();
-                if (sql.isEmpty()) {
+            for (String line : normalized.split("\n")) {
+                String trimmed = line.trim();
+                
+                // Skip empty lines and comments
+                if (trimmed.isEmpty() || trimmed.startsWith("--")) {
                     continue;
                 }
+                
+                // Handle DELIMITER commands (MySQL client-specific, not valid SQL)
+                if (trimmed.toUpperCase().startsWith("DELIMITER")) {
+                    String[] parts = trimmed.split("\\s+");
+                    if (parts.length > 1) {
+                        currentDelimiter = parts[1];
+                    } else {
+                        // DELIMITER without argument resets to semicolon
+                        currentDelimiter = ";";
+                    }
+                    continue; // Skip DELIMITER lines - they're not SQL
+                }
+                
+                // Check if this line ends the current statement
+                if (trimmed.endsWith(currentDelimiter)) {
+                    // Remove the delimiter from the end
+                    String lineWithoutDelimiter = trimmed.substring(0, trimmed.length() - currentDelimiter.length()).trim();
+                    if (!lineWithoutDelimiter.isEmpty()) {
+                        currentStatement.append(lineWithoutDelimiter);
+                    }
+                    
+                    // Execute the complete statement
+                    String sql = currentStatement.toString().trim();
+                    if (!sql.isEmpty()) {
+                        try {
+                            statement.execute(sql);
+                            logger.info("Executed SQL: " + sql.substring(0, Math.min(sql.length(), 50)) + "...");
+                        } catch (SQLException e) {
+                            logger.warning("Failed to execute SQL: " + sql + " - " + e.getMessage());
+                        }
+                    }
+                    
+                    // Reset for next statement
+                    currentStatement.setLength(0);
+                    // Note: Delimiter reset happens when we encounter DELIMITER ; command
+                } else {
+                    // Continue building the current statement
+                    currentStatement.append(line).append('\n');
+                }
+            }
+            
+            // Execute any remaining statement
+            String sql = currentStatement.toString().trim();
+            if (!sql.isEmpty()) {
                 try {
                     statement.execute(sql);
                     logger.info("Executed SQL: " + sql.substring(0, Math.min(sql.length(), 50)) + "...");
@@ -105,10 +147,18 @@ public class DatabaseInitializer {
     }
     
     /**
-     * Deregister MySQL drivers to allow clean JVM shutdown
-     * This prevents the abandoned connection cleanup thread from lingering
+     * Deregister MySQL drivers
      */
     private static void deregisterDrivers() {
+        try {
+            Class<?> cleanupThreadClass = Class.forName("com.mysql.cj.jdbc.AbandonedConnectionCleanupThread");
+            java.lang.reflect.Method shutdownMethod = cleanupThreadClass.getMethod("checkedShutdown");
+            shutdownMethod.invoke(null);
+            logger.info("Shut down MySQL abandoned connection cleanup thread");
+        } catch (Exception e) {
+            logger.fine("MySQL cleanup thread shutdown: " + e.getMessage());
+        }
+        
         Enumeration<Driver> drivers = DriverManager.getDrivers();
         while (drivers.hasMoreElements()) {
             Driver driver = drivers.nextElement();
@@ -146,7 +196,6 @@ public class DatabaseInitializer {
                 System.out.println("✗ Database connection failed");
             }
         } finally {
-            // Deregister MySQL drivers to allow clean shutdown
             deregisterDrivers();
             logger.info("Database initializer shutdown complete");
         }

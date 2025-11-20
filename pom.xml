@@ -156,7 +156,6 @@
                 <version>3.2.3</version>
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
-                    <encoding>UTF-8</encoding>
                     <!-- Include Java source code -->
                     <webResources>
                         <resource>
@@ -183,6 +182,12 @@
                         </goals>
                         <configuration>
                             <mainClass>com.projectlume.util.DatabaseInitializer</mainClass>
+                            <systemProperties>
+                                <systemProperty>
+                                    <key>com.mysql.cj.disableAbandonedConnectionCleanup</key>
+                                    <value>true</value>
+                                </systemProperty>
+                            </systemProperties>
                         </configuration>
                     </execution>
                 </executions>
