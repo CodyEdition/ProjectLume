@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Tomcat 9 Context Configuration
+-->
+<Context>
+    <!-- Application display name -->
+    <WatchedResource>WEB-INF/web.xml</WatchedResource>
+    
+    <!-- Resource monitoring -->
+    <WatchedResource>WEB-INF/classes</WatchedResource>
+    
+    <!-- Session configuration -->
+    <Manager className="org.apache.catalina.session.StandardManager"
+             maxActiveSessions="-1"
+             processExpiresFrequency="6"
+             maxInactiveInterval="1800"/>
+    
+    <!-- JSP compiler settings -->
+    <JspServlet className="org.apache.jasper.servlet.JspServlet"
+                development="false"
+                fork="false"
+                xpoweredBy="false"/>
+    
+    <!-- Prevent resource leaks -->
+    <Resources cachingAllowed="true"
+               cacheMaxSize="100000"
+               cacheObjectMaxSize="4096"
+               cacheTTL="60000"/>
+</Context>
+
