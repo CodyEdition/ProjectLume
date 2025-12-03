@@ -1,9 +1,8 @@
 package com.projectlume.servlet;
 
-import com.projectlume.dao.DeckDAO;
-import com.projectlume.factory.DAOFactory;
-import com.projectlume.model.Deck;
+import com.projectlume.dto.DeckStatsDTO;
 import com.projectlume.model.User;
+import com.projectlume.service.DeckService;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -22,10 +21,10 @@ import java.util.logging.Logger;
 @WebServlet(name = "DashboardServlet", urlPatterns = {"/dashboard"})
 public class DashboardServlet extends HttpServlet {
     private static final Logger logger = Logger.getLogger(DashboardServlet.class.getName());
-    private final DeckDAO deckDAO;
+    private final DeckService deckService;
     
     public DashboardServlet() {
-        this.deckDAO = DAOFactory.createDeckDAO();
+        this.deckService = new DeckService();
     }
     
     @Override
@@ -42,11 +41,11 @@ public class DashboardServlet extends HttpServlet {
             User user = (User) session.getAttribute("user");
             Long userId = user.getId();
             
-            // Get user's decks
-            List<Deck> decks = deckDAO.findByUserId(userId);
+            // Get deck statistics for user
+            List<DeckStatsDTO> deckStatsList = deckService.getDeckStatisticsForUser(userId);
             
             request.setAttribute("user", user);
-            request.setAttribute("decks", decks);
+            request.setAttribute("deckStatsList", deckStatsList);
             request.setAttribute("currentPage", "dashboard");
             request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp").forward(request, response);
             

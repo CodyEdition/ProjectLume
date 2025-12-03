@@ -160,30 +160,17 @@
         <div class="decks-section">
             <h3>Your Decks</h3>
             <c:choose>
-                <c:when test="${not empty decks}">
+                <c:when test="${not empty deckStatsList}">
                     <div class="deck-grid">
-                        <c:forEach var="deck" items="${decks}" varStatus="loop">
+                        <c:forEach var="deckStats" items="${deckStatsList}" varStatus="loop">
                             <c:set var="cardNumber" value="${loop.index + 1}" />
                             <c:set var="cardNumberPadded" value="${cardNumber < 10 ? '00' : (cardNumber < 100 ? '0' : '')}${cardNumber}" />
-                            <%
-                                com.projectlume.model.Deck deck = (com.projectlume.model.Deck) pageContext.getAttribute("deck");
-                                String dateCode = "NOV10.25.10";
-                                if (deck != null && deck.getCreatedAt() != null) {
-                                    java.time.LocalDateTime date = deck.getCreatedAt();
-                                    String[] monthNames = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", 
-                                                          "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-                                    String month = monthNames[date.getMonthValue() - 1];
-                                    String day = String.format("%02d", date.getDayOfMonth());
-                                    String yearShort = String.format("%02d", date.getYear() % 100);
-                                    dateCode = month + day + "." + yearShort + "." + day;
-                                }
-                                pageContext.setAttribute("dateCode", dateCode);
-                            %>
+                            <c:set var="dateCode" value="NOV10.25.10" />
                             <c:set var="serialNumber" value="${dateCode}S3" />
                             
                             <div class="collectible-card card-scanlines">
                                 <div class="card-specs-bar">
-                                    <span>DECK | ID: ${deck.id}</span>
+                                    <span>DECK | ID: ${deckStats.deckId}</span>
                                     <span class="card-badge">${dateCode}</span>
                                 </div>
                                 
@@ -193,15 +180,22 @@
                                     <div class="card-content">
                                         <div>
                                             <div class="card-number">${cardNumberPadded}</div>
-                                            <div class="card-title">${deck.name}</div>
-                                            <div class="card-description">${deck.description}</div>
+                                            <div class="card-title">${deckStats.name}</div>
+                                            <div class="card-description">${deckStats.description}</div>
+                                            <div style="margin-top: 10px; font-size: 0.9em; color: #888;">
+                                                <div>Cards: ${deckStats.totalCards} | Studied: ${deckStats.cardsStudied}</div>
+                                                <div>Completion: <fmt:formatNumber value="${deckStats.completionPercentage}" maxFractionDigits="1"/>%</div>
+                                                <c:if test="${deckStats.averageAccuracy != null}">
+                                                    <div>Accuracy: <fmt:formatNumber value="${deckStats.averageAccuracy}" maxFractionDigits="1"/>%</div>
+                                                </c:if>
+                                            </div>
                                         </div>
                                         
                                         <div class="card-actions">
-                                            <a href="${pageContext.request.contextPath}/study/${deck.id}" class="btn btn-success" title="Start studying this deck">Study</a>
-                                            <a href="${pageContext.request.contextPath}/card?deckId=${deck.id}" class="btn btn-secondary" title="View cards">View</a>
-                                            <a href="${pageContext.request.contextPath}/deck/edit/${deck.id}" class="btn btn-secondary" title="Edit deck">✎</a>
-                                            <a href="${pageContext.request.contextPath}/deck/delete/${deck.id}" class="btn btn-danger" 
+                                            <a href="${pageContext.request.contextPath}/study/${deckStats.deckId}" class="btn btn-success" title="Start studying this deck">Study</a>
+                                            <a href="${pageContext.request.contextPath}/card?deckId=${deckStats.deckId}" class="btn btn-secondary" title="View cards">View</a>
+                                            <a href="${pageContext.request.contextPath}/deck/edit/${deckStats.deckId}" class="btn btn-secondary" title="Edit deck">✎</a>
+                                            <a href="${pageContext.request.contextPath}/deck/delete/${deckStats.deckId}" class="btn btn-danger" 
                                                onclick="return confirm('Are you sure you want to delete this deck?')" title="Delete deck">✕</a>
                                         </div>
                                     </div>
