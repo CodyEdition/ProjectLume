@@ -165,7 +165,20 @@
                         <c:forEach var="deckStats" items="${deckStatsList}" varStatus="loop">
                             <c:set var="cardNumber" value="${loop.index + 1}" />
                             <c:set var="cardNumberPadded" value="${cardNumber < 10 ? '00' : (cardNumber < 100 ? '0' : '')}${cardNumber}" />
-                            <c:set var="dateCode" value="NOV10.25.10" />
+                            <%
+                                com.projectlume.dto.DeckStatsDTO deckStats = (com.projectlume.dto.DeckStatsDTO) pageContext.getAttribute("deckStats");
+                                String dateCode = "NOV10.25.10";
+                                if (deckStats != null && deckStats.getCreatedAt() != null) {
+                                    java.time.LocalDateTime date = deckStats.getCreatedAt();
+                                    String[] monthNames = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", 
+                                                          "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+                                    String month = monthNames[date.getMonthValue() - 1];
+                                    String day = String.format("%02d", date.getDayOfMonth());
+                                    String yearShort = String.format("%02d", date.getYear() % 100);
+                                    dateCode = month + day + "." + yearShort + "." + day;
+                                }
+                                pageContext.setAttribute("dateCode", dateCode);
+                            %>
                             <c:set var="serialNumber" value="${dateCode}S3" />
                             
                             <div class="collectible-card card-scanlines">

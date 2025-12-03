@@ -94,6 +94,7 @@ public class DeckService {
                     totalCards,
                     cardsStudied,
                     completionPercentage,
+                    deck.getCreatedAt(),
                     lastStudyDate,
                     averageAccuracy
             );

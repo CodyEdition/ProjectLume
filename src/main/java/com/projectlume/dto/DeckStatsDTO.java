@@ -13,6 +13,7 @@ public class DeckStatsDTO {
     private final int totalCards;
     private final int cardsStudied;
     private final double completionPercentage;
+    private final LocalDateTime createdAt;
     private final LocalDateTime lastStudyDate;
     private final Double averageAccuracy;
 
@@ -24,18 +25,20 @@ public class DeckStatsDTO {
      * @param totalCards Total number of cards in the deck
      * @param cardsStudied Total number of cards studied across all sessions
      * @param completionPercentage Percentage of cards studied (0-100)
+     * @param createdAt Deck creation date
      * @param lastStudyDate Most recent study session date (can be null)
      * @param averageAccuracy Average accuracy percentage across all sessions (can be null if no sessions)
      */
     public DeckStatsDTO(Long deckId, String name, String description, int totalCards, 
                        int cardsStudied, double completionPercentage, 
-                       LocalDateTime lastStudyDate, Double averageAccuracy) {
+                       LocalDateTime createdAt, LocalDateTime lastStudyDate, Double averageAccuracy) {
         this.deckId = deckId;
         this.name = name;
         this.description = description;
         this.totalCards = totalCards;
         this.cardsStudied = cardsStudied;
         this.completionPercentage = completionPercentage;
+        this.createdAt = createdAt;
         this.lastStudyDate = lastStudyDate;
         this.averageAccuracy = averageAccuracy;
     }
@@ -64,6 +67,10 @@ public class DeckStatsDTO {
         return completionPercentage;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
     public LocalDateTime getLastStudyDate() {
         return lastStudyDate;
     }
@@ -81,6 +88,7 @@ public class DeckStatsDTO {
                 ", totalCards=" + totalCards +
                 ", cardsStudied=" + cardsStudied +
                 ", completionPercentage=" + completionPercentage +
+                ", createdAt=" + createdAt +
                 ", lastStudyDate=" + lastStudyDate +
                 ", averageAccuracy=" + averageAccuracy +
                 '}';
