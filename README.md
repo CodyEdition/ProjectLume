@@ -1,4 +1,4 @@
-### Project Lume - MVP Second Iteration
+### Project Lume - MVP Third Iteration
 
 Simple Java web application for the Project Lume MVP.
 
