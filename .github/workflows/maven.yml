@@ -1,0 +1,110 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "mvp-third-iteration" ]
+  pull_request:
+    branches: [ "mvp-third-iteration" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    # Add MySQL service
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: projectlume
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+    
+    # Run tests separately
+    - name: Run tests
+      run: mvn -B test --file pom.xml
+      env:
+        # Add database connection if needed
+        DB_URL: jdbc:mysql://localhost:3306/projectlume
+        DB_USER: root
+        DB_PASSWORD: root
+    
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+    
+    # Verify WAR file was created
+    - name: Verify WAR file exists
+      run: |
+        if [ ! -f "target/project-lume-mvp.war" ]; then
+          echo "ERROR: WAR file not found!"
+          exit 1
+        fi
+        echo "✓ WAR file created successfully"
+        ls -lh target/project-lume-mvp.war
+    
+    # Verify source code is included in WAR
+    - name: Verify source code in WAR
+      run: |
+        unzip -q target/project-lume-mvp.war -d /tmp/war-extract
+        if [ ! -d "/tmp/war-extract/WEB-INF/sources" ]; then
+          echo "ERROR: Source code not found in WAR!"
+          exit 1
+        fi
+        echo "✓ Source code found in WAR"
+        ls -R /tmp/war-extract/WEB-INF/sources | head -20
+    
+    # Verify DDL file is included
+    - name: Verify DDL file in WAR
+      run: |
+        if [ ! -f "/tmp/war-extract/WEB-INF/classes/schema-mysql.sql" ]; then
+          echo "ERROR: DDL file not found in WAR!"
+          exit 1
+        fi
+        echo "✓ DDL file found in WAR"
+    
+    # Upload WAR as artifact (Deployment)
+    - name: Upload WAR artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: project-lume-mvp
+        path: target/project-lume-mvp.war
+        retention-days: 7
+    
+    # Upload test results
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: target/surefire-reports/
+        retention-days: 7
+        if-no-files-found: ignore
+    
+    # Update dependency graph
+    - name: Update dependency graph
+      uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
+      continue-on-error: true
+      if: github.event_name == 'push' && github.ref == 'refs/heads/mvp-third-iteration'
