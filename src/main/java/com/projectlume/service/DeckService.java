@@ -77,8 +77,9 @@ public class DeckService {
                         if (entry.isWasCorrect()) {
                             totalCorrectAnswers++;
                         }
-                        if (lastStudyDate == null || entry.getStudyDate().isAfter(lastStudyDate)) {
-                            lastStudyDate = entry.getStudyDate();
+                        LocalDateTime entryDate = entry.getStudyDate();
+                        if (entryDate != null && (lastStudyDate == null || entryDate.isAfter(lastStudyDate))) {
+                            lastStudyDate = entryDate;
                         }
                     }
                 }
