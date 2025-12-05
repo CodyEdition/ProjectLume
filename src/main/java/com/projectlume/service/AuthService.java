@@ -1,8 +1,10 @@
 package com.projectlume.service;
 
 import com.projectlume.dao.UserDAO;
+import com.projectlume.exception.ValidationException;
 import com.projectlume.factory.DAOFactory;
 import com.projectlume.model.User;
+import com.projectlume.util.ValidationUtils;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.sql.SQLException;
@@ -111,6 +113,59 @@ public class AuthService {
             logger.severe("Database error during login: " + e.getMessage());
             throw new AuthException("Login failed due to database error", e);
         }
+    }
+    
+    /**
+     * Update user profile information
+     * @param userId User ID
+     * @param username New username
+     * @param email New email
+     * @param firstName New first name
+     * @param lastName New last name
+     * @return Updated User object
+     * @throws ValidationException if validation fails
+     * @throws SQLException if database error occurs
+     */
+    public User updateProfile(Long userId, String username, String email, 
+                             String firstName, String lastName) 
+            throws ValidationException, SQLException {
+        // Validate input
+        ValidationUtils.validateUsername(username);
+        ValidationUtils.validateEmail(email);
+        ValidationUtils.validateName(firstName, "firstName");
+        ValidationUtils.validateName(lastName, "lastName");
+        
+        // Get current user
+        User user = userDAO.findById(userId);
+        if (user == null) {
+            throw new SQLException("User not found");
+        }
+        
+        // Check username uniqueness (excluding current user)
+        if (!username.equals(user.getUsername())) {
+            User existingUser = userDAO.findByUsername(username);
+            if (existingUser != null) {
+                throw new ValidationException("username", "Username is already taken");
+            }
+        }
+        
+        // Check email uniqueness (excluding current user)
+        if (!email.equals(user.getEmail())) {
+            User existingUser = userDAO.findByEmail(email);
+            if (existingUser != null) {
+                throw new ValidationException("email", "Email is already taken");
+            }
+        }
+        
+        // Update user information
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        
+        User updatedUser = userDAO.update(user);
+        logger.info("Profile updated successfully for user: " + username);
+        return updatedUser;
     }
     
     /**

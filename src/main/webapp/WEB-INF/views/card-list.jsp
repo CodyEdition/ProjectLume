@@ -110,20 +110,7 @@
                         <c:forEach var="card" items="${cards}" varStatus="loop">
                             <c:set var="cardNumber" value="${loop.index + 1}" />
                             <c:set var="cardNumberPadded" value="${cardNumber < 10 ? '00' : (cardNumber < 100 ? '0' : '')}${cardNumber}" />
-                            <%
-                                com.projectlume.model.Card card = (com.projectlume.model.Card) pageContext.getAttribute("card");
-                                String dateCode = "NOV10.25.10";
-                                if (card != null && card.getCreatedAt() != null) {
-                                    java.time.LocalDateTime date = card.getCreatedAt();
-                                    String[] monthNames = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", 
-                                                          "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-                                    String month = monthNames[date.getMonthValue() - 1];
-                                    String day = String.format("%02d", date.getDayOfMonth());
-                                    String yearShort = String.format("%02d", date.getYear() % 100);
-                                    dateCode = month + day + "." + yearShort + "." + day;
-                                }
-                                pageContext.setAttribute("dateCode", dateCode);
-                            %>
+                            <c:set var="dateCode" value="${card.dateCode}" />
                             <c:set var="serialNumber" value="${dateCode}S3" />
                             <c:set var="badgeClass" value="" />
                             <c:choose>

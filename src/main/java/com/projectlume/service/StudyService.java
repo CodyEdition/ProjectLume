@@ -4,6 +4,7 @@ import com.projectlume.dao.CardDAO;
 import com.projectlume.dao.CardStudyHistoryDAO;
 import com.projectlume.dao.DeckDAO;
 import com.projectlume.dao.StudySessionDAO;
+import com.projectlume.dto.StudySessionDTO;
 import com.projectlume.factory.DAOFactory;
 import com.projectlume.model.Card;
 import com.projectlume.model.CardStudyHistory;
@@ -11,6 +12,9 @@ import com.projectlume.model.Deck;
 import com.projectlume.model.StudySession;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -177,6 +181,55 @@ public class StudyService {
         }
         
         return cardDAO.findByDeckId(deckId);
+    }
+    
+    /**
+     * Get study history for a user, converting sessions to DTOs with formatted data
+     * @param userId User ID
+     * @return List of StudySessionDTO objects containing formatted study session data
+     * @throws SQLException if database error occurs
+     */
+    public List<StudySessionDTO> getStudyHistoryForUser(Long userId) throws SQLException {
+        List<StudySessionDTO> dtoList = new ArrayList<>();
+        
+        // Get all study sessions for the user
+        List<StudySession> sessions = studySessionDAO.findByUserId(userId);
+        
+        // Date formatter for display
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd, h:mma");
+        
+        // Convert each session to DTO
+        for (StudySession session : sessions) {
+            // Format date
+            LocalDateTime date = session.getSessionDate();
+            String formattedDate = (date != null) ? dateFormatter.format(date) : "";
+            
+            // Get deck name
+            Long deckId = session.getDeckId();
+            Deck deck = null;
+            try {
+                deck = deckDAO.findById(deckId);
+            } catch (SQLException e) {
+                logger.warning("Error fetching deck " + deckId + " for study history: " + e.getMessage());
+            }
+            String deckName = (deck != null) ? deck.getName() : "";
+            
+            // Get study count
+            int studyCount = session.getCardsStudied();
+            
+            // Calculate accuracy
+            int correctAnswers = session.getCorrectAnswers();
+            int incorrectAnswers = session.getIncorrectAnswers();
+            int total = correctAnswers + incorrectAnswers;
+            float accuracy = (total == 0) ? 0 : ((float) 100 * correctAnswers / total);
+            String formattedAccuracy = String.format("%.2f%%", accuracy);
+            
+            // Create DTO and add to list
+            dtoList.add(new StudySessionDTO(formattedDate, deckName, studyCount, formattedAccuracy));
+        }
+        
+        logger.info("Retrieved study history for user " + userId + ": " + dtoList.size() + " sessions");
+        return dtoList;
     }
 }
 

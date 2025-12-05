@@ -107,6 +107,24 @@ public class Card {
         this.active = active;
     }
     
+    /**
+     * Get formatted date code for display (e.g., "NOV10.25.10")
+     * Format: MONTHDAY.YEARS.DAY
+     * @return Formatted date code string, or "NOV10.25.10" as default if createdAt is null
+     */
+    public String getDateCode() {
+        if (createdAt == null) {
+            return "NOV10.25.10";
+        }
+        
+        String[] monthNames = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", 
+                              "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+        String month = monthNames[createdAt.getMonthValue() - 1];
+        String day = String.format("%02d", createdAt.getDayOfMonth());
+        String yearShort = String.format("%02d", createdAt.getYear() % 100);
+        return month + day + "." + yearShort + "." + day;
+    }
+    
     @Override
     public String toString() {
         return "Card{" +
