@@ -1,5 +1,6 @@
 package com.projectlume.servlet;
 
+import com.projectlume.dto.DeckStatsDTO;
 import com.projectlume.model.Deck;
 import com.projectlume.model.User;
 import com.projectlume.service.DeckService;
@@ -85,11 +86,10 @@ public class DeckServlet extends HttpServlet {
             throws ServletException, IOException {
         try {
             Long userId = getCurrentUserId(request);
-            java.util.List<Deck> decks = deckService.getDecksForUser(userId);
+            java.util.List<DeckStatsDTO> deckStatsList = deckService.getDeckStatisticsForUser(userId);
             
-            request.setAttribute("decks", decks);
+            request.setAttribute("deckStatsList", deckStatsList);
             request.setAttribute("currentPage", "dashboard");
-            // Reuse dashboard view to list decks; dedicated deck-list.jsp not present
             request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp").forward(request, response);
             
         } catch (SQLException e) {

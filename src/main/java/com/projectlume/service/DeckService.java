@@ -1,11 +1,13 @@
 package com.projectlume.service;
 
 import com.projectlume.dao.CardDAO;
+import com.projectlume.dao.CardStudyHistoryDAO;
 import com.projectlume.dao.DeckDAO;
 import com.projectlume.dao.StudySessionDAO;
 import com.projectlume.dto.DeckStatsDTO;
 import com.projectlume.factory.DAOFactory;
 import com.projectlume.model.Card;
+import com.projectlume.model.CardStudyHistory;
 import com.projectlume.model.Deck;
 import com.projectlume.model.StudySession;
 
@@ -13,7 +15,9 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -24,11 +28,13 @@ public class DeckService {
     private final DeckDAO deckDAO;
     private final CardDAO cardDAO;
     private final StudySessionDAO studySessionDAO;
+    private final CardStudyHistoryDAO cardStudyHistoryDAO;
     
     public DeckService() {
         this.deckDAO = DAOFactory.createDeckDAO();
         this.cardDAO = DAOFactory.createCardDAO();
         this.studySessionDAO = DAOFactory.createStudySessionDAO();
+        this.cardStudyHistoryDAO = DAOFactory.createCardStudyHistoryDAO();
     }
     
     /**
@@ -56,33 +62,48 @@ public class DeckService {
             // Get study sessions for this deck
             List<StudySession> sessions = studySessionDAO.findByDeckId(deckId);
             
-            // Calculate cards studied
-            int cardsStudied = sessions.stream()
-                    .mapToInt(StudySession::getCardsStudied)
-                    .sum();
+            // Get unique cards studied from card_study_history
+            Set<Long> uniqueCardsStudied = new HashSet<>();
+            int totalCorrectAnswers = 0;
+            int totalAttempts = 0;
+            LocalDateTime lastStudyDate = null;
             
-            // Calculate completion percentage
+            for (Card card : cards) {
+                List<CardStudyHistory> history = cardStudyHistoryDAO.findByCardId(card.getId());
+                for (CardStudyHistory entry : history) {
+                    if (entry.getUserId().equals(userId)) {
+                        uniqueCardsStudied.add(card.getId());
+                        totalAttempts++;
+                        if (entry.isWasCorrect()) {
+                            totalCorrectAnswers++;
+                        }
+                        if (lastStudyDate == null || entry.getStudyDate().isAfter(lastStudyDate)) {
+                            lastStudyDate = entry.getStudyDate();
+                        }
+                    }
+                }
+            }
+            
+            int cardsStudied = uniqueCardsStudied.size();
+            
+            // Calculate completion percentage based on unique cards
             double completionPercentage = 0.0;
             if (totalCards > 0) {
                 completionPercentage = (double) cardsStudied / totalCards * 100.0;
             }
             
-            // Get last study date
-            LocalDateTime lastStudyDate = null;
-            if (!sessions.isEmpty()) {
+            // Use session date if no card history exists
+            if (lastStudyDate == null && !sessions.isEmpty()) {
                 lastStudyDate = sessions.stream()
                         .map(StudySession::getSessionDate)
                         .max(Comparator.naturalOrder())
                         .orElse(null);
             }
             
-            // Calculate average accuracy
+            // Calculate average accuracy based on all attempts
             Double averageAccuracy = null;
-            if (!sessions.isEmpty() && cardsStudied > 0) {
-                int totalCorrectAnswers = sessions.stream()
-                        .mapToInt(StudySession::getCorrectAnswers)
-                        .sum();
-                averageAccuracy = (double) totalCorrectAnswers / cardsStudied * 100.0;
+            if (totalAttempts > 0) {
+                averageAccuracy = (double) totalCorrectAnswers / totalAttempts * 100.0;
             }
             
             // Create DeckStatsDTO
