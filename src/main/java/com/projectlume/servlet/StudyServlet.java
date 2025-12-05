@@ -1,8 +1,5 @@
 package com.projectlume.servlet;
 
-import com.projectlume.dao.CardDAO;
-import com.projectlume.dao.DeckDAO;
-import com.projectlume.factory.DAOFactory;
 import com.projectlume.model.Card;
 import com.projectlume.model.Deck;
 import com.projectlume.model.StudySession;
@@ -22,18 +19,15 @@ import java.util.logging.Logger;
 
 /**
  * Servlet for handling study sessions
+ * Acts as a controller in the MVC pattern - delegates business logic to StudyService
  */
 @WebServlet(name = "StudyServlet", urlPatterns = {"/study/*"})
 public class StudyServlet extends HttpServlet {
     private static final Logger logger = Logger.getLogger(StudyServlet.class.getName());
     private final StudyService studyService;
-    private final CardDAO cardDAO;
-    private final DeckDAO deckDAO;
     
     public StudyServlet() {
         this.studyService = new StudyService();
-        this.cardDAO = DAOFactory.createCardDAO();
-        this.deckDAO = DAOFactory.createDeckDAO();
     }
     
     @Override
@@ -100,19 +94,10 @@ public class StudyServlet extends HttpServlet {
         try {
             Long userId = getCurrentUserId(request);
             
-            // Verify deck ownership
-            Deck deck = deckDAO.findById(deckId);
-            if (deck == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            if (!deck.getUserId().equals(userId)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
-                return;
-            }
+            // Get deck and cards via service (validates ownership)
+            Deck deck = studyService.getDeckForUser(userId, deckId);
+            List<Card> cards = studyService.getCardsForDeck(userId, deckId);
             
-            // Get cards for the deck
-            List<Card> cards = cardDAO.findByDeckId(deckId);
             if (cards.isEmpty()) {
                 request.setAttribute("error", "This deck has no cards to study");
                 request.setAttribute("deck", deck);
@@ -120,7 +105,7 @@ public class StudyServlet extends HttpServlet {
                 return;
             }
             
-            // Start study session
+            // Start study session via service
             StudySession session = studyService.startStudySession(userId, deckId);
             
             // Store study state in session
@@ -149,6 +134,8 @@ public class StudyServlet extends HttpServlet {
             logger.severe("Error starting study session: " + e.getMessage());
             request.setAttribute("error", "Failed to start study session");
             request.getRequestDispatcher("/WEB-INF/views/error.jsp").forward(request, response);
+        } catch (SecurityException e) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
         } catch (NumberFormatException e) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         }
@@ -184,7 +171,8 @@ public class StudyServlet extends HttpServlet {
             }
             
             Card currentCard = cards.get(cardIndex);
-            Deck deck = deckDAO.findById(deckId);
+            Long userId = getCurrentUserId(request);
+            Deck deck = studyService.getDeckForUser(userId, deckId);
             
             // Get user from session for display in header
             User user = (User) httpSession.getAttribute("user");
@@ -202,6 +190,8 @@ public class StudyServlet extends HttpServlet {
             logger.severe("Error showing card answer: " + e.getMessage());
             request.setAttribute("error", "Failed to load card");
             request.getRequestDispatcher("/WEB-INF/views/error.jsp").forward(request, response);
+        } catch (SecurityException e) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
         }
     }
     
@@ -251,7 +241,7 @@ public class StudyServlet extends HttpServlet {
                 // Show next card front
                 Card nextCard = cards.get(nextIndex);
                 Long deckId = (Long) httpSession.getAttribute("studyDeckId");
-                Deck deck = deckDAO.findById(deckId);
+                Deck deck = studyService.getDeckForUser(userId, deckId);
                 
                 // Get user from session for display in header
                 User user = (User) httpSession.getAttribute("user");
@@ -270,6 +260,8 @@ public class StudyServlet extends HttpServlet {
             logger.severe("Error recording answer: " + e.getMessage());
             request.setAttribute("error", "Failed to record answer");
             request.getRequestDispatcher("/WEB-INF/views/error.jsp").forward(request, response);
+        } catch (SecurityException e) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
         }
     }
     
@@ -311,7 +303,14 @@ public class StudyServlet extends HttpServlet {
             
             Deck deck = null;
             if (deckId != null) {
-                deck = deckDAO.findById(deckId);
+                try {
+                    Long userId = getCurrentUserId(request);
+                    deck = studyService.getDeckForUser(userId, deckId);
+                } catch (SQLException | SecurityException e) {
+                    logger.warning("Deck not found or access denied for deckId: " + deckId + ", redirecting to dashboard");
+                    response.sendRedirect(request.getContextPath() + "/dashboard");
+                    return;
+                }
             }
             
             // If deck still cannot be found, redirect to dashboard

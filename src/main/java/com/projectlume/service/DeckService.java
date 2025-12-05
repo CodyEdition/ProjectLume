@@ -56,18 +56,18 @@ public class DeckService {
             // Get study sessions for this deck
             List<StudySession> sessions = studySessionDAO.findByDeckId(deckId);
             
-            // Calculate cards studied (sum of cards_studied from all sessions)
+            // Calculate cards studied
             int cardsStudied = sessions.stream()
                     .mapToInt(StudySession::getCardsStudied)
                     .sum();
             
-            // Calculate completion percentage (handle division by zero)
+            // Calculate completion percentage
             double completionPercentage = 0.0;
             if (totalCards > 0) {
                 completionPercentage = (double) cardsStudied / totalCards * 100.0;
             }
             
-            // Get last study date (most recent session_date)
+            // Get last study date
             LocalDateTime lastStudyDate = null;
             if (!sessions.isEmpty()) {
                 lastStudyDate = sessions.stream()
@@ -77,7 +77,6 @@ public class DeckService {
             }
             
             // Calculate average accuracy
-            // Accuracy = (sum of correct_answers) / (sum of cards_studied) * 100
             Double averageAccuracy = null;
             if (!sessions.isEmpty() && cardsStudied > 0) {
                 int totalCorrectAnswers = sessions.stream()
@@ -104,6 +103,104 @@ public class DeckService {
         
         logger.info("Retrieved statistics for " + deckStatsList.size() + " decks for user " + userId);
         return deckStatsList;
+    }
+    
+    /**
+     * Get a deck by ID, validating that the user owns it
+     * @param userId User ID
+     * @param deckId Deck ID
+     * @return Deck object
+     * @throws SQLException if database error occurs
+     * @throws SecurityException if user doesn't own the deck
+     */
+    public Deck getDeckForUser(Long userId, Long deckId) throws SQLException {
+        Deck deck = deckDAO.findById(deckId);
+        if (deck == null) {
+            throw new SQLException("Deck not found");
+        }
+        if (!deck.getUserId().equals(userId)) {
+            throw new SecurityException("User does not own this deck");
+        }
+        return deck;
+    }
+    
+    /**
+     * Get all decks for a user
+     * @param userId User ID
+     * @return List of decks belonging to the user
+     * @throws SQLException if database error occurs
+     */
+    public List<Deck> getDecksForUser(Long userId) throws SQLException {
+        return deckDAO.findByUserId(userId);
+    }
+    
+    /**
+     * Create a new deck, validating input
+     * @param userId User ID
+     * @param name Deck name
+     * @param description Deck description (can be null)
+     * @return Created deck object
+     * @throws SQLException if database error occurs
+     * @throws IllegalArgumentException if input validation fails
+     */
+    public Deck createDeck(Long userId, String name, String description) throws SQLException {
+        // Validate input
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Deck name is required");
+        }
+        
+        // Create deck
+        Deck deck = new Deck(userId, name.trim(), description != null ? description.trim() : null);
+        Deck createdDeck = deckDAO.create(deck);
+        
+        logger.info("Deck created successfully: " + name);
+        return createdDeck;
+    }
+    
+    /**
+     * Update a deck, validating ownership and input
+     * @param userId User ID
+     * @param deckId Deck ID
+     * @param name Deck name
+     * @param description Deck description (can be null)
+     * @return Updated deck object
+     * @throws SQLException if database error occurs
+     * @throws IllegalArgumentException if input validation fails
+     * @throws SecurityException if user doesn't own the deck
+     */
+    public Deck updateDeck(Long userId, Long deckId, String name, String description) throws SQLException {
+        // Validate input
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Deck name is required");
+        }
+        
+        // Get deck and validate ownership
+        Deck deck = getDeckForUser(userId, deckId);
+        
+        // Update deck fields
+        deck.setName(name.trim());
+        deck.setDescription(description != null ? description.trim() : null);
+        
+        Deck updatedDeck = deckDAO.update(deck);
+        logger.info("Deck updated successfully: " + name);
+        return updatedDeck;
+    }
+    
+    /**
+     * Delete a deck, validating ownership
+     * @param userId User ID
+     * @param deckId Deck ID
+     * @return true if deletion successful
+     * @throws SQLException if database error occurs
+     * @throws SecurityException if user doesn't own the deck
+     */
+    public boolean deleteDeck(Long userId, Long deckId) throws SQLException {
+        Deck deck = getDeckForUser(userId, deckId);
+        boolean deleted = deckDAO.delete(deckId);
+        if (deleted) {
+            logger.info("Deck deleted successfully: " + deck.getName());
+        }
+        return deleted;
     }
 }
 

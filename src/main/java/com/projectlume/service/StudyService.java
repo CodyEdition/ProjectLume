@@ -5,11 +5,13 @@ import com.projectlume.dao.CardStudyHistoryDAO;
 import com.projectlume.dao.DeckDAO;
 import com.projectlume.dao.StudySessionDAO;
 import com.projectlume.factory.DAOFactory;
+import com.projectlume.model.Card;
 import com.projectlume.model.CardStudyHistory;
 import com.projectlume.model.Deck;
 import com.projectlume.model.StudySession;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -135,6 +137,46 @@ public class StudyService {
             throw new SQLException("Study session not found");
         }
         return session;
+    }
+    
+    /**
+     * Get deck for a user, validating ownership
+     * @param userId User ID
+     * @param deckId Deck ID
+     * @return Deck object
+     * @throws SQLException if database error occurs
+     * @throws SecurityException if user doesn't own the deck
+     */
+    public Deck getDeckForUser(Long userId, Long deckId) throws SQLException {
+        Deck deck = deckDAO.findById(deckId);
+        if (deck == null) {
+            throw new SQLException("Deck not found");
+        }
+        if (!deck.getUserId().equals(userId)) {
+            throw new SecurityException("User does not own this deck");
+        }
+        return deck;
+    }
+    
+    /**
+     * Get cards for a deck, validating that the user owns the deck
+     * @param userId User ID
+     * @param deckId Deck ID
+     * @return List of cards belonging to the deck
+     * @throws SQLException if database error occurs
+     * @throws SecurityException if user doesn't own the deck
+     */
+    public List<Card> getCardsForDeck(Long userId, Long deckId) throws SQLException {
+        // Validate deck ownership
+        Deck deck = deckDAO.findById(deckId);
+        if (deck == null) {
+            throw new SQLException("Deck not found");
+        }
+        if (!deck.getUserId().equals(userId)) {
+            throw new SecurityException("User does not own this deck");
+        }
+        
+        return cardDAO.findByDeckId(deckId);
     }
 }
 

@@ -1,11 +1,9 @@
 package com.projectlume.servlet;
 
-import com.projectlume.dao.CardDAO;
-import com.projectlume.dao.DeckDAO;
-import com.projectlume.factory.DAOFactory;
 import com.projectlume.model.Card;
 import com.projectlume.model.Deck;
 import com.projectlume.model.User;
+import com.projectlume.service.CardService;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -15,21 +13,19 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.logging.Logger;
 
 /**
  * Servlet for card management (CRUD operations)
+ * Acts as a controller in the MVC pattern - delegates business logic to CardService
  */
 @WebServlet(name = "CardServlet", urlPatterns = {"/card/*"})
 public class CardServlet extends HttpServlet {
     private static final Logger logger = Logger.getLogger(CardServlet.class.getName());
-    private final CardDAO cardDAO;
-    private final DeckDAO deckDAO;
+    private final CardService cardService;
     
     public CardServlet() {
-        this.cardDAO = DAOFactory.createCardDAO();
-        this.deckDAO = DAOFactory.createDeckDAO();
+        this.cardService = new CardService();
     }
     
     @Override
@@ -93,20 +89,11 @@ public class CardServlet extends HttpServlet {
     private void listCards(HttpServletRequest request, HttpServletResponse response, Long deckId) 
             throws ServletException, IOException {
         try {
-            // Verify deck ownership
-            Deck deck = deckDAO.findById(deckId);
-            if (deck == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            
             Long userId = getCurrentUserId(request);
-            if (!deck.getUserId().equals(userId)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
-                return;
-            }
             
-            List<Card> cards = cardDAO.findByDeckId(deckId);
+            // Get deck and cards via service (validates ownership)
+            Deck deck = cardService.getDeckForUser(userId, deckId);
+            java.util.List<Card> cards = cardService.getCardsForDeck(userId, deckId);
             
             // Set user attribute for header
             setUserAttribute(request);
@@ -120,6 +107,8 @@ public class CardServlet extends HttpServlet {
             setUserAttribute(request);
             request.setAttribute("error", "Failed to load cards");
             request.getRequestDispatcher("/WEB-INF/views/card-list.jsp").forward(request, response);
+        } catch (SecurityException e) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
         }
     }
     
@@ -136,19 +125,10 @@ public class CardServlet extends HttpServlet {
         
         try {
             Long deckId = Long.parseLong(deckIdParam);
-            Deck deck = deckDAO.findById(deckId);
-            
-            if (deck == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            
-            // Check if user owns this deck
             Long userId = getCurrentUserId(request);
-            if (!deck.getUserId().equals(userId)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
-                return;
-            }
+            
+            // Get deck via service (validates ownership)
+            Deck deck = cardService.getDeckForUser(userId, deckId);
             
             setUserAttribute(request);
             request.setAttribute("deck", deck);
@@ -161,6 +141,8 @@ public class CardServlet extends HttpServlet {
             setUserAttribute(request);
             request.setAttribute("error", "Failed to load deck");
             request.getRequestDispatcher("/WEB-INF/views/card-form.jsp").forward(request, response);
+        } catch (SecurityException e) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
         }
     }
     
@@ -175,49 +157,42 @@ public class CardServlet extends HttpServlet {
             String backText = request.getParameter("backText");
             String difficultyLevelStr = request.getParameter("difficultyLevel");
             
-            if (deckIdParam == null || frontText == null || backText == null) {
-                request.setAttribute("error", "All fields are required");
-                request.getRequestDispatcher("/WEB-INF/views/card-form.jsp").forward(request, response);
+            if (deckIdParam == null) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
             
             Long deckId = Long.parseLong(deckIdParam);
-            
-            // Verify deck ownership
-            Deck deck = deckDAO.findById(deckId);
-            if (deck == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            
             Long userId = getCurrentUserId(request);
-            if (!deck.getUserId().equals(userId)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
-                return;
-            }
             
-            Card.DifficultyLevel difficultyLevel = Card.DifficultyLevel.MEDIUM;
+            // Parse difficulty level
+            Card.DifficultyLevel difficultyLevel = null;
             if (difficultyLevelStr != null) {
                 try {
                     difficultyLevel = Card.DifficultyLevel.valueOf(difficultyLevelStr);
                 } catch (IllegalArgumentException e) {
-                    // Use default MEDIUM level
+                    // Will use default in service
                 }
             }
             
-            Card card = new Card(deckId, frontText, backText, difficultyLevel);
-            cardDAO.create(card);
+            // Create card via service (validates ownership and input)
+            cardService.createCard(userId, deckId, frontText, backText, difficultyLevel);
             
-            logger.info("Card created successfully: " + frontText);
             response.sendRedirect(request.getContextPath() + "/card?deckId=" + deckId);
             
         } catch (NumberFormatException e) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+        } catch (IllegalArgumentException e) {
+            setUserAttribute(request);
+            request.setAttribute("error", e.getMessage());
+            request.getRequestDispatcher("/WEB-INF/views/card-form.jsp").forward(request, response);
         } catch (SQLException e) {
             logger.severe("Error creating card: " + e.getMessage());
             setUserAttribute(request);
             request.setAttribute("error", "Failed to create card");
             request.getRequestDispatcher("/WEB-INF/views/card-form.jsp").forward(request, response);
+        } catch (SecurityException e) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
         }
     }
     
@@ -230,25 +205,11 @@ public class CardServlet extends HttpServlet {
             String pathInfo = request.getPathInfo();
             String cardIdStr = pathInfo.substring("/edit/".length());
             Long cardId = Long.parseLong(cardIdStr);
-            
-            Card card = cardDAO.findById(cardId);
-            if (card == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            
-            // Verify deck ownership
-            Deck deck = deckDAO.findById(card.getDeckId());
-            if (deck == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            
             Long userId = getCurrentUserId(request);
-            if (!deck.getUserId().equals(userId)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
-                return;
-            }
+            
+            // Get card and deck via service (validates ownership)
+            Card card = cardService.getCardForUser(userId, cardId);
+            Deck deck = cardService.getDeckForUser(userId, card.getDeckId());
             
             setUserAttribute(request);
             request.setAttribute("card", card);
@@ -262,6 +223,8 @@ public class CardServlet extends HttpServlet {
             setUserAttribute(request);
             request.setAttribute("error", "Failed to load card");
             request.getRequestDispatcher("/WEB-INF/views/card-form.jsp").forward(request, response);
+        } catch (SecurityException e) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
         }
     }
     
@@ -274,61 +237,52 @@ public class CardServlet extends HttpServlet {
             String pathInfo = request.getPathInfo();
             String cardIdStr = pathInfo.substring("/edit/".length());
             Long cardId = Long.parseLong(cardIdStr);
-            
-            Card card = cardDAO.findById(cardId);
-            if (card == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            
-            // Verify deck ownership
-            Deck deck = deckDAO.findById(card.getDeckId());
-            if (deck == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            
             Long userId = getCurrentUserId(request);
-            if (!deck.getUserId().equals(userId)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
-                return;
-            }
             
             String frontText = request.getParameter("frontText");
             String backText = request.getParameter("backText");
             String difficultyLevelStr = request.getParameter("difficultyLevel");
             
-            if (frontText == null || backText == null) {
-                setUserAttribute(request);
-                request.setAttribute("error", "All fields are required");
-                request.setAttribute("card", card);
-                request.setAttribute("deck", deck);
-                request.getRequestDispatcher("/WEB-INF/views/card-form.jsp").forward(request, response);
-                return;
-            }
-            
-            card.setFrontText(frontText);
-            card.setBackText(backText);
-            
+            // Parse difficulty level
+            Card.DifficultyLevel difficultyLevel = null;
             if (difficultyLevelStr != null) {
                 try {
-                    card.setDifficultyLevel(Card.DifficultyLevel.valueOf(difficultyLevelStr));
+                    difficultyLevel = Card.DifficultyLevel.valueOf(difficultyLevelStr);
                 } catch (IllegalArgumentException e) {
-                    // Keep current difficulty level
+                    // Will keep current in service
                 }
             }
             
-            cardDAO.update(card);
+            // Update card via service (validates ownership and input)
+            Card card = cardService.updateCard(userId, cardId, frontText, backText, difficultyLevel);
             
-            logger.info("Card updated successfully: " + frontText);
             response.sendRedirect(request.getContextPath() + "/card?deckId=" + card.getDeckId());
             
         } catch (NumberFormatException e) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+        } catch (IllegalArgumentException e) {
+            setUserAttribute(request);
+            request.setAttribute("error", e.getMessage());
+            // Try to reload card and deck for form
+            try {
+                String pathInfo = request.getPathInfo();
+                Long cardId = Long.parseLong(pathInfo.substring("/edit/".length()));
+                Long userId = getCurrentUserId(request);
+                Card card = cardService.getCardForUser(userId, cardId);
+                Deck deck = cardService.getDeckForUser(userId, card.getDeckId());
+                request.setAttribute("card", card);
+                request.setAttribute("deck", deck);
+            } catch (Exception ex) {
+                // Ignore - will show error only
+            }
+            request.getRequestDispatcher("/WEB-INF/views/card-form.jsp").forward(request, response);
         } catch (SQLException e) {
             logger.severe("Error updating card: " + e.getMessage());
+            setUserAttribute(request);
             request.setAttribute("error", "Failed to update card");
             request.getRequestDispatcher("/WEB-INF/views/card-form.jsp").forward(request, response);
+        } catch (SecurityException e) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
         }
     }
     
@@ -341,36 +295,24 @@ public class CardServlet extends HttpServlet {
             String pathInfo = request.getPathInfo();
             String cardIdStr = pathInfo.substring("/delete/".length());
             Long cardId = Long.parseLong(cardIdStr);
-            
-            Card card = cardDAO.findById(cardId);
-            if (card == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            
-            // Verify deck ownership
-            Deck deck = deckDAO.findById(card.getDeckId());
-            if (deck == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            
             Long userId = getCurrentUserId(request);
-            if (!deck.getUserId().equals(userId)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
-                return;
-            }
             
-            cardDAO.delete(cardId);
+            // Get card first to get deckId for redirect
+            Card card = cardService.getCardForUser(userId, cardId);
+            Long deckId = card.getDeckId();
             
-            logger.info("Card deleted successfully: " + card.getFrontText());
-            response.sendRedirect(request.getContextPath() + "/card?deckId=" + card.getDeckId());
+            // Delete card via service (validates ownership)
+            cardService.deleteCard(userId, cardId);
+            
+            response.sendRedirect(request.getContextPath() + "/card?deckId=" + deckId);
             
         } catch (NumberFormatException e) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         } catch (SQLException e) {
             logger.severe("Error deleting card: " + e.getMessage());
             response.sendRedirect(request.getContextPath() + "/deck");
+        } catch (SecurityException e) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
         }
     }
     
