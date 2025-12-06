@@ -11,72 +11,95 @@ import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * Data Access Object for Deck entity
- * Handles all database operations related to decks
- * Implements the Repository pattern for data access abstraction
+ * DeckDAO
+ * ----------------------------------------
+ * Handles all CRUD operations and statistics queries
+ * related to Deck entities. Provides SQL-based data access
+ * for DeckService and other layers. Implements logic for:
+ *
+ *  - Creating decks
+ *  - Updating deck data
+ *  - Fetching decks for a user
+ *  - Soft deletion
+ *  - Statistics required by DeckStatsDTO
+ *
+ * Statistics include:
+ *  - Total number of cards in a deck
+ *  - How many unique cards a user has studied
+ *  - The last study date for that deck
+ *  - User's average accuracy (%) for that deck
  */
 public class DeckDAO implements DeckRepository {
+
     private static final Logger logger = Logger.getLogger(DeckDAO.class.getName());
 
     // ======================
-    // Existing SQL Queries
+    // Base CRUD Queries
     // ======================
 
     private static final String INSERT_DECK =
-        "INSERT INTO decks (user_id, name, description, created_at, updated_at, is_active) " +
-        "VALUES (?, ?, ?, ?, ?, ?)";
+            "INSERT INTO decks (user_id, name, description, created_at, updated_at, is_active) " +
+            "VALUES (?, ?, ?, ?, ?, ?)";
 
     private static final String SELECT_DECK_BY_ID =
-        "SELECT * FROM decks WHERE id = ? AND is_active = true";
+            "SELECT * FROM decks WHERE id = ? AND is_active = true";
 
     private static final String SELECT_DECKS_BY_USER_ID =
-        "SELECT * FROM decks WHERE user_id = ? AND is_active = true ORDER BY created_at DESC";
+            "SELECT * FROM decks WHERE user_id = ? AND is_active = true ORDER BY created_at DESC";
 
     private static final String UPDATE_DECK =
-        "UPDATE decks SET name = ?, description = ?, updated_at = ? WHERE id = ?";
+            "UPDATE decks SET name = ?, description = ?, updated_at = ? WHERE id = ?";
 
     private static final String DELETE_DECK =
-        "UPDATE decks SET is_active = false, updated_at = ? WHERE id = ?";
+            "UPDATE decks SET is_active = false, updated_at = ? WHERE id = ?";
 
     private static final String SELECT_ALL_DECKS =
-        "SELECT * FROM decks WHERE is_active = true ORDER BY created_at DESC";
+            "SELECT * FROM decks WHERE is_active = true ORDER BY created_at DESC";
 
 
     // ======================
-    // NEW — Statistics Queries
+    // Statistics Queries (Used for DeckStatsDTO)
     // ======================
 
+    /** Count active cards in a deck */
     private static final String COUNT_CARDS_IN_DECK =
-        "SELECT COUNT(*) FROM cards WHERE deck_id = ? AND is_active = true";
+            "SELECT COUNT(*) FROM cards WHERE deck_id = ? AND is_active = true";
 
+    /** Count unique cards studied by the user */
     private static final String COUNT_STUDIED_CARDS_IN_DECK =
-        "SELECT COUNT(DISTINCT c.id) " +
-        "FROM cards c " +
-        "JOIN card_study_history h ON c.id = h.card_id " +
-        "WHERE c.deck_id = ? AND h.user_id = ? AND c.is_active = true";
+            "SELECT COUNT(DISTINCT c.id) " +
+            "FROM cards c " +
+            "JOIN card_study_history h ON c.id = h.card_id " +
+            "WHERE c.deck_id = ? AND h.user_id = ? AND c.is_active = true";
 
+    /** Get the most recent study date */
     private static final String LAST_STUDY_DATE_FOR_DECK =
-        "SELECT MAX(h.study_date) " +
-        "FROM cards c " +
-        "JOIN card_study_history h ON c.id = h.card_id " +
-        "WHERE c.deck_id = ? AND h.user_id = ? AND c.is_active = true";
+            "SELECT MAX(h.study_date) " +
+            "FROM cards c " +
+            "JOIN card_study_history h ON c.id = h.card_id " +
+            "WHERE c.deck_id = ? AND h.user_id = ? AND c.is_active = true";
 
+    /** Compute average accuracy for this deck */
     private static final String ACCURACY_FOR_DECK =
-        "SELECT AVG(CASE WHEN h.was_correct = true THEN 1.0 ELSE 0 END) " +
-        "FROM cards c " +
-        "JOIN card_study_history h ON c.id = h.card_id " +
-        "WHERE c.deck_id = ? AND h.user_id = ? AND c.is_active = true";
+            "SELECT AVG(CASE WHEN h.was_correct = true THEN 1.0 ELSE 0.0 END) " +
+            "FROM cards c " +
+            "JOIN card_study_history h ON c.id = h.card_id " +
+            "WHERE c.deck_id = ? AND h.user_id = ? AND c.is_active = true";
 
 
-    // ======================
-    // CRUD Operations
-    // ======================
+    // =====================================================================================
+    //                                         CRUD METHODS
+    // =====================================================================================
 
+    /**
+     * Create a new deck and return the populated Deck object.
+     */
     public Deck create(Deck deck) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(INSERT_DECK, Statement.RETURN_GENERATED_KEYS)) {
 
             LocalDateTime now = LocalDateTime.now();
+
             statement.setLong(1, deck.getUserId());
             statement.setString(2, deck.getName());
             statement.setString(3, deck.getDescription());
@@ -89,6 +112,7 @@ public class DeckDAO implements DeckRepository {
                 throw new SQLException("Creating deck failed, no rows affected.");
             }
 
+            // Retrieve generated ID
             try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     deck.setId(generatedKeys.getLong(1));
@@ -104,22 +128,27 @@ public class DeckDAO implements DeckRepository {
         }
     }
 
+    /**
+     * Retrieve a deck by its unique ID.
+     */
     public Deck findById(Long id) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_DECK_BY_ID)) {
 
             statement.setLong(1, id);
 
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return mapResultSetToDeck(resultSet);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToDeck(rs);
                 }
             }
-
-            return null;
         }
+        return null;
     }
 
+    /**
+     * Retrieve all active decks belonging to a user.
+     */
     public List<Deck> findByUserId(Long userId) throws SQLException {
         List<Deck> decks = new ArrayList<>();
 
@@ -128,21 +157,24 @@ public class DeckDAO implements DeckRepository {
 
             statement.setLong(1, userId);
 
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    decks.add(mapResultSetToDeck(resultSet));
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    decks.add(mapResultSetToDeck(rs));
                 }
             }
         }
-
         return decks;
     }
 
+    /**
+     * Update the name/description for a deck.
+     */
     public Deck update(Deck deck) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE_DECK)) {
 
             LocalDateTime now = LocalDateTime.now();
+
             statement.setString(1, deck.getName());
             statement.setString(2, deck.getDescription());
             statement.setTimestamp(3, Timestamp.valueOf(now));
@@ -154,11 +186,13 @@ public class DeckDAO implements DeckRepository {
             }
 
             deck.setUpdatedAt(now);
-            logger.info("Deck updated successfully: " + deck.getName());
             return deck;
         }
     }
 
+    /**
+     * Soft delete a deck (mark as inactive).
+     */
     public boolean delete(Long id) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(DELETE_DECK)) {
@@ -167,33 +201,35 @@ public class DeckDAO implements DeckRepository {
             statement.setLong(2, id);
 
             int affectedRows = statement.executeUpdate();
-            logger.info("Deck deleted successfully: ID " + id);
             return affectedRows > 0;
         }
     }
 
+    /**
+     * Retrieve all active decks in the system.
+     */
     public List<Deck> findAll() throws SQLException {
         List<Deck> decks = new ArrayList<>();
 
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_ALL_DECKS);
-             ResultSet resultSet = statement.executeQuery()) {
+             ResultSet rs = statement.executeQuery()) {
 
-            while (resultSet.next()) {
-                decks.add(mapResultSetToDeck(resultSet));
+            while (rs.next()) {
+                decks.add(mapResultSetToDeck(rs));
             }
         }
-
         return decks;
     }
 
 
-    // ======================
-    // NEW — Statistics Methods
-    // ======================
+    // =====================================================================================
+    //                                 STATISTICS METHODS
+    // =====================================================================================
 
     /**
-     * Returns the total number of active cards in a deck.
+     * Retrieves the total number of active cards in a deck.
+     * Used for calculating completionPercentage.
      */
     public int getCardCountForDeck(Long deckId) {
         try (Connection connection = DatabaseConnection.getConnection();
@@ -212,7 +248,8 @@ public class DeckDAO implements DeckRepository {
     }
 
     /**
-     * Returns the number of unique cards from a deck that the user has studied.
+     * Retrieves how many unique cards in this deck the user has studied.
+     * Used to determine the user's progress.
      */
     public int getStudiedCardCountForDeck(Long deckId, Long userId) {
         try (Connection connection = DatabaseConnection.getConnection();
@@ -226,14 +263,14 @@ public class DeckDAO implements DeckRepository {
             }
 
         } catch (SQLException e) {
-            logger.warning("Error retrieving studied card count for deck "
-                    + deckId + ", user " + userId + ": " + e.getMessage());
+            logger.warning("Error retrieving studied card count: deck=" + deckId + ", user=" + userId);
         }
         return 0;
     }
 
     /**
-     * Returns the most recent study date for any card in the deck by the given user.
+     * Retrieves the most recent study date for any card in the deck by this user.
+     * Returns null if the deck has never been studied.
      */
     public LocalDateTime getLastStudyDateForDeck(Long deckId, Long userId) {
         try (Connection connection = DatabaseConnection.getConnection();
@@ -250,16 +287,18 @@ public class DeckDAO implements DeckRepository {
             }
 
         } catch (SQLException e) {
-            logger.warning("Error retrieving last study date for deck "
-                    + deckId + ", user " + userId + ": " + e.getMessage());
+            logger.warning("Error retrieving last study date: deck=" + deckId + ", user=" + userId);
         }
         return null;
     }
 
     /**
-     * Returns the average accuracy (0–100%) for all study attempts on the deck by the user.
+     * Computes the average accuracy for the user in this deck.
+     * Returns:
+     *   - null if no study history exists
+     *   - a Double representing accuracy percentage (0–100)
      */
-    public double getAccuracyForDeck(Long deckId, Long userId) {
+    public Double getAccuracyForDeck(Long deckId, Long userId) {
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(ACCURACY_FOR_DECK)) {
 
@@ -268,39 +307,44 @@ public class DeckDAO implements DeckRepository {
 
             try (ResultSet rs = statement.executeQuery()) {
                 if (rs.next()) {
-                    double avg = rs.getDouble(1);
-                    if (rs.wasNull()) return 0.0;
-                    return avg * 100.0;
+                    double accuracy = rs.getDouble(1);
+                    if (rs.wasNull()) return null; // No study attempts
+                    return accuracy * 100.0;       // Convert fraction to %
                 }
             }
 
         } catch (SQLException e) {
-            logger.warning("Error retrieving accuracy for deck "
-                    + deckId + ", user " + userId + ": " + e.getMessage());
+            logger.warning("Error retrieving accuracy: deck=" + deckId + ", user=" + userId);
         }
-
-        return 0.0;
+        return null;
     }
 
 
-    // ======================
-    // Mapping Helper
-    // ======================
+    // =====================================================================================
+    //                               INTERNAL MAPPING HELPER
+    // =====================================================================================
 
-    private Deck mapResultSetToDeck(ResultSet resultSet) throws SQLException {
+    /**
+     * Converts a SQL ResultSet row into a Deck object.
+     */
+    private Deck mapResultSetToDeck(ResultSet rs) throws SQLException {
         Deck deck = new Deck();
-        deck.setId(resultSet.getLong("id"));
-        deck.setUserId(resultSet.getLong("user_id"));
-        deck.setName(resultSet.getString("name"));
-        deck.setDescription(resultSet.getString("description"));
 
-        Timestamp createdAt = resultSet.getTimestamp("created_at");
-        if (createdAt != null) deck.setCreatedAt(createdAt.toLocalDateTime());
+        deck.setId(rs.getLong("id"));
+        deck.setUserId(rs.getLong("user_id"));
+        deck.setName(rs.getString("name"));
+        deck.setDescription(rs.getString("description"));
 
-        Timestamp updatedAt = resultSet.getTimestamp("updated_at");
-        if (updatedAt != null) deck.setUpdatedAt(updatedAt.toLocalDateTime());
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        if (createdAt != null)
+            deck.setCreatedAt(createdAt.toLocalDateTime());
 
-        deck.setActive(resultSet.getBoolean("is_active"));
+        Timestamp updatedAt = rs.getTimestamp("updated_at");
+        if (updatedAt != null)
+            deck.setUpdatedAt(updatedAt.toLocalDateTime());
+
+        deck.setActive(rs.getBoolean("is_active"));
+
         return deck;
     }
 }
