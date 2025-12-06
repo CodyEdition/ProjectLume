@@ -45,88 +45,45 @@ public class DeckService {
      * @return List of DeckStatsDTO objects containing statistics for each deck
      * @throws SQLException if database error occurs
      */
-    public List<DeckStatsDTO> getDeckStatisticsForUser(Long userId) throws SQLException {
-        List<DeckStatsDTO> deckStatsList = new ArrayList<>();
-        
-        // Get all decks for the user
-        List<Deck> decks = deckDAO.findByUserId(userId);
-        
-        // For each deck, calculate statistics
-        for (Deck deck : decks) {
-            Long deckId = deck.getId();
-            
-            // Get total card count
-            List<Card> cards = cardDAO.findByDeckId(deckId);
-            int totalCards = cards.size();
-            
-            // Get study sessions for this deck
-            List<StudySession> sessions = studySessionDAO.findByDeckId(deckId);
-            
-            // Get unique cards studied from card_study_history
-            Set<Long> uniqueCardsStudied = new HashSet<>();
-            int totalCorrectAnswers = 0;
-            int totalAttempts = 0;
-            LocalDateTime lastStudyDate = null;
-            
-            for (Card card : cards) {
-                List<CardStudyHistory> history = cardStudyHistoryDAO.findByCardId(card.getId());
-                for (CardStudyHistory entry : history) {
-                    if (entry.getUserId().equals(userId)) {
-                        uniqueCardsStudied.add(card.getId());
-                        totalAttempts++;
-                        if (entry.isWasCorrect()) {
-                            totalCorrectAnswers++;
-                        }
-                        LocalDateTime entryDate = entry.getStudyDate();
-                        if (entryDate != null && (lastStudyDate == null || entryDate.isAfter(lastStudyDate))) {
-                            lastStudyDate = entryDate;
-                        }
-                    }
-                }
-            }
-            
-            int cardsStudied = uniqueCardsStudied.size();
-            
-            // Calculate completion percentage based on unique cards
-            double completionPercentage = 0.0;
-            if (totalCards > 0) {
-                completionPercentage = (double) cardsStudied / totalCards * 100.0;
-            }
-            
-            // Use session date if no card history exists
-            if (lastStudyDate == null && !sessions.isEmpty()) {
-                lastStudyDate = sessions.stream()
-                        .map(StudySession::getSessionDate)
-                        .max(Comparator.naturalOrder())
-                        .orElse(null);
-            }
-            
-            // Calculate average accuracy based on all attempts
-            Double averageAccuracy = null;
-            if (totalAttempts > 0) {
-                averageAccuracy = (double) totalCorrectAnswers / totalAttempts * 100.0;
-            }
-            
-            // Create DeckStatsDTO
-            DeckStatsDTO deckStats = new DeckStatsDTO(
-                    deckId,
-                    deck.getName(),
-                    deck.getDescription(),
-                    totalCards,
-                    cardsStudied,
-                    completionPercentage,
-                    deck.getCreatedAt(),
-                    lastStudyDate,
-                    averageAccuracy
-            );
-            
-            deckStatsList.add(deckStats);
-        }
-        
-        logger.info("Retrieved statistics for " + deckStatsList.size() + " decks for user " + userId);
-        return deckStatsList;
+ public List<DeckStatsDTO> getDeckStatisticsForUser(Long userId) throws SQLException {
+    List<DeckStatsDTO> statsList = new ArrayList<>();
+
+    // Get all decks owned by the user
+    List<Deck> decks = deckDAO.findByUserId(userId);
+
+    for (Deck deck : decks) {
+        Long deckId = deck.getId();
+
+        // --- Use the NEW DeckDAO statistics methods ---
+        int totalCards = deckDAO.getCardCountForDeck(deckId);
+        int cardsStudied = deckDAO.getStudiedCardCountForDeck(deckId, userId);
+        LocalDateTime lastStudyDate = deckDAO.getLastStudyDateForDeck(deckId, userId);
+        Double averageAccuracy = deckDAO.getAccuracyForDeck(deckId, userId);
+
+        // Derived field
+        double completionPercentage =
+            (totalCards == 0) ? 0.0 : (cardsStudied / (double) totalCards) * 100.0;
+
+        // Build DTO (your DTO uses constructor + final fields)
+        DeckStatsDTO dto = new DeckStatsDTO(
+                deckId,
+                deck.getName(),
+                deck.getDescription(),
+                totalCards,
+                cardsStudied,
+                completionPercentage,
+                deck.getCreatedAt(),
+                lastStudyDate,
+                averageAccuracy
+        );
+
+        statsList.add(dto);
     }
-    
+
+    logger.info("Retrieved statistics for " + statsList.size() + " decks for user " + userId);
+    return statsList;
+}
+
     /**
      * Get a deck by ID, validating that the user owns it
      * @param userId User ID
