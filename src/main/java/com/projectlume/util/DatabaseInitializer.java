@@ -12,22 +12,13 @@ import java.sql.Statement;
 import java.util.Enumeration;
 import java.util.logging.Logger;
 
-/**
- * Database initialization utility
- * Creates database tables and inserts sample data
- */
 public class DatabaseInitializer {
     private static final Logger logger = Logger.getLogger(DatabaseInitializer.class.getName());
     
-    /**
-     * Initialize the database with schema and sample data
-     * @return true if initialization successful
-     */
     public static boolean initializeDatabase() {
         try (Connection connection = DatabaseConnection.getConnection()) {
             logger.info("Starting database initialization...");
             
-            // Read and execute appropriate schema based on database type
             String schemaFile = "schema-mysql.sql";
             String schema = readResourceFile(schemaFile);
             executeSQLScript(connection, schema);
@@ -44,12 +35,6 @@ public class DatabaseInitializer {
         }
     }
     
-    /**
-     * Read a resource file from the classpath
-     * @param filename Name of the resource file
-     * @return File content as string
-     * @throws IOException if file cannot be read
-     */
     private static String readResourceFile(String filename) throws IOException {
         StringBuilder content = new StringBuilder();
         
@@ -69,14 +54,6 @@ public class DatabaseInitializer {
         return content.toString();
     }
     
-    /**
-     * Execute SQL script
-     * Handles DELIMITER statements (MySQL client commands) by skipping them
-     * and properly processing multi-line statements with custom delimiters
-     * @param connection Database connection
-     * @param sqlScript SQL script to execute
-     * @throws SQLException if execution fails
-     */
     private static void executeSQLScript(Connection connection, String sqlScript) throws SQLException {
         String normalized = sqlScript.replace("\r\n", "\n").replace('\r', '\n');
         

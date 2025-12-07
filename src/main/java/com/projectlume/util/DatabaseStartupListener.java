@@ -1,5 +1,9 @@
 package com.projectlume.util;
 
+import com.projectlume.observer.EventPublisher;
+import com.projectlume.observer.impl.StudySessionCompletedListener;
+import com.projectlume.observer.impl.UserRegisteredListener;
+
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
@@ -17,6 +21,13 @@ public class DatabaseStartupListener implements ServletContextListener {
     public void contextInitialized(ServletContextEvent sce) {
         logger.info("Initializing database schema and seed data (MySQL)...");
         DatabaseInitializer.initializeDatabase();
+        
+        // Initialize Observer pattern listeners
+        logger.info("Initializing event listeners...");
+        EventPublisher eventPublisher = EventPublisher.getInstance();
+        eventPublisher.subscribe(new UserRegisteredListener());
+        eventPublisher.subscribe(new StudySessionCompletedListener());
+        logger.info("Event listeners initialized");
     }
 
     @Override

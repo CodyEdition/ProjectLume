@@ -1,5 +1,6 @@
 package com.projectlume.service;
 
+import com.projectlume.builder.StudySessionDTOBuilder;
 import com.projectlume.dao.CardDAO;
 import com.projectlume.dao.CardStudyHistoryDAO;
 import com.projectlume.dao.DeckDAO;
@@ -10,25 +11,27 @@ import com.projectlume.model.Card;
 import com.projectlume.model.CardStudyHistory;
 import com.projectlume.model.Deck;
 import com.projectlume.model.StudySession;
+import com.projectlume.observer.EventPublisher;
+import com.projectlume.observer.impl.StudySessionCompletedEvent;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Service for managing study sessions and card study history
+ * Refactored to extend BaseService and use Observer pattern for events
  */
-public class StudyService {
-    private static final Logger logger = Logger.getLogger(StudyService.class.getName());
+public class StudyService extends BaseService {
     private final StudySessionDAO studySessionDAO;
     private final CardStudyHistoryDAO cardStudyHistoryDAO;
     private final DeckDAO deckDAO;
     private final CardDAO cardDAO;
     
     public StudyService() {
+        super();
         this.studySessionDAO = DAOFactory.createStudySessionDAO();
         this.cardStudyHistoryDAO = DAOFactory.createCardStudyHistoryDAO();
         this.deckDAO = DAOFactory.createDeckDAO();
@@ -52,14 +55,14 @@ public class StudyService {
             throw new SQLException("User does not own this deck");
         }
         
-        // Create new study session
+        // Create new study session using template method from BaseService
         StudySession session = new StudySession(userId, deckId);
         session.setCardsStudied(0);
         session.setCorrectAnswers(0);
         session.setIncorrectAnswers(0);
         session.setSessionDurationMinutes(0);
         
-        StudySession createdSession = studySessionDAO.create(session);
+        StudySession createdSession = executeCreate(() -> studySessionDAO.create(session));
         logger.info("Study session started: ID " + createdSession.getId() + " for deck " + deckId);
         return createdSession;
     }
@@ -123,7 +126,12 @@ public class StudyService {
         }
         
         session.setSessionDurationMinutes(durationMinutes);
-        StudySession updatedSession = studySessionDAO.update(session);
+        StudySession updatedSession = executeUpdate(() -> studySessionDAO.update(session));
+        
+        // Publish event using Observer pattern
+        EventPublisher.getInstance().publish(
+            new StudySessionCompletedEvent(updatedSession, session.getUserId(), session.getDeckId())
+        );
         
         logger.info("Study session ended: ID " + sessionId + ", Duration: " + durationMinutes + " minutes");
         return updatedSession;
@@ -224,8 +232,14 @@ public class StudyService {
             float accuracy = (total == 0) ? 0 : ((float) 100 * correctAnswers / total);
             String formattedAccuracy = String.format("%.2f%%", accuracy);
             
-            // Create DTO and add to list
-            dtoList.add(new StudySessionDTO(formattedDate, deckName, studyCount, formattedAccuracy));
+            // Create DTO using Builder pattern
+            StudySessionDTO dto = StudySessionDTOBuilder.builder()
+                    .formattedDate(formattedDate)
+                    .name(deckName)
+                    .studyCount(studyCount)
+                    .formattedAccuracy(formattedAccuracy)
+                    .build();
+            dtoList.add(dto);
         }
         
         logger.info("Retrieved study history for user " + userId + ": " + dtoList.size() + " sessions");

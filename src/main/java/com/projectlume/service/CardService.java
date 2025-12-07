@@ -5,23 +5,26 @@ import com.projectlume.dao.DeckDAO;
 import com.projectlume.factory.DAOFactory;
 import com.projectlume.model.Card;
 import com.projectlume.model.Deck;
+import com.projectlume.strategy.ValidationContext;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Service for managing card-related operations
  * Handles business logic for card CRUD operations and ownership validation
+ * Refactored to extend BaseService and use Validation Strategy pattern
  */
-public class CardService {
-    private static final Logger logger = Logger.getLogger(CardService.class.getName());
+public class CardService extends BaseService {
     private final CardDAO cardDAO;
     private final DeckDAO deckDAO;
+    private final ValidationContext validationContext;
     
     public CardService() {
+        super();
         this.cardDAO = DAOFactory.createCardDAO();
         this.deckDAO = DAOFactory.createDeckDAO();
+        this.validationContext = new ValidationContext();
     }
     
     /**
@@ -104,12 +107,12 @@ public class CardService {
      */
     public Card createCard(Long userId, Long deckId, String frontText, String backText, Card.DifficultyLevel difficultyLevel) 
             throws SQLException {
-        // Validate input
-        if (frontText == null || frontText.trim().isEmpty()) {
-            throw new IllegalArgumentException("Front text is required");
-        }
-        if (backText == null || backText.trim().isEmpty()) {
-            throw new IllegalArgumentException("Back text is required");
+        // Validate input using Strategy pattern
+        try {
+            validationContext.validate("frontText", frontText, "frontText");
+            validationContext.validate("backText", backText, "backText");
+        } catch (com.projectlume.exception.ValidationException e) {
+            throw new IllegalArgumentException(e.getMessage());
         }
         
         // Validate deck ownership
@@ -124,9 +127,9 @@ public class CardService {
         // Set default difficulty level if not provided
         Card.DifficultyLevel level = difficultyLevel != null ? difficultyLevel : Card.DifficultyLevel.MEDIUM;
         
-        // Create card
+        // Create card using template method from BaseService
         Card card = new Card(deckId, frontText.trim(), backText.trim(), level);
-        Card createdCard = cardDAO.create(card);
+        Card createdCard = executeCreate(() -> cardDAO.create(card));
         
         logger.info("Card created successfully: " + frontText);
         return createdCard;
@@ -146,25 +149,25 @@ public class CardService {
      */
     public Card updateCard(Long userId, Long cardId, String frontText, String backText, Card.DifficultyLevel difficultyLevel) 
             throws SQLException {
-        // Validate input
-        if (frontText == null || frontText.trim().isEmpty()) {
-            throw new IllegalArgumentException("Front text is required");
-        }
-        if (backText == null || backText.trim().isEmpty()) {
-            throw new IllegalArgumentException("Back text is required");
+        // Validate input using Strategy pattern
+        try {
+            validationContext.validate("frontText", frontText, "frontText");
+            validationContext.validate("backText", backText, "backText");
+        } catch (com.projectlume.exception.ValidationException e) {
+            throw new IllegalArgumentException(e.getMessage());
         }
         
         // Get card and validate ownership
         Card card = getCardForUser(userId, cardId);
         
-        // Update card fields
+        // Update card fields using template method from BaseService
         card.setFrontText(frontText.trim());
         card.setBackText(backText.trim());
         if (difficultyLevel != null) {
             card.setDifficultyLevel(difficultyLevel);
         }
         
-        Card updatedCard = cardDAO.update(card);
+        Card updatedCard = executeUpdate(() -> cardDAO.update(card));
         logger.info("Card updated successfully: " + frontText);
         return updatedCard;
     }
@@ -181,7 +184,7 @@ public class CardService {
         // Get card and validate ownership
         Card card = getCardForUser(userId, cardId);
         
-        boolean deleted = cardDAO.delete(cardId);
+        boolean deleted = executeDelete(() -> cardDAO.delete(cardId));
         if (deleted) {
             logger.info("Card deleted successfully: " + card.getFrontText());
         }
