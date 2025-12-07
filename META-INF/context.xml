@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Tomcat 9 Context Configuration
+    Optimized for Tomcat 9.x deployment
+-->
+<Context>
+    <!-- Monitor web.xml and classes for changes -->
+    <WatchedResource>WEB-INF/web.xml</WatchedResource>
+    <WatchedResource>WEB-INF/classes</WatchedResource>
+    
+    <!-- Session manager configuration -->
+    <Manager className="org.apache.catalina.session.StandardManager"
+             maxActiveSessions="-1"
+             processExpiresFrequency="6"/>
+    
+    <!-- Resource caching configuration -->
+    <Resources cachingAllowed="true"
+               cacheMaxSize="100000"
+               cacheObjectMaxSize="4096"/>
+</Context>
+

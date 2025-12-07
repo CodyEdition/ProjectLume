@@ -2,9 +2,6 @@ package com.projectlume.model;
 
 import java.time.LocalDateTime;
 
-/**
- * User entity representing a registered user in the system
- */
 public class User {
     private Long id;
     private String username;
@@ -16,10 +13,8 @@ public class User {
     private LocalDateTime updatedAt;
     private boolean active;
     
-    // Default constructor
     public User() {}
     
-    // Constructor with basic fields
     public User(String username, String email, String passwordHash, String firstName, String lastName) {
         this.username = username;
         this.email = email;
@@ -29,7 +24,6 @@ public class User {
         this.active = true;
     }
     
-    // Getters and Setters
     public Long getId() {
         return id;
     }
