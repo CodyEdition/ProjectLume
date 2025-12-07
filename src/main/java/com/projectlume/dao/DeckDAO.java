@@ -38,6 +38,34 @@ public class DeckDAO implements DeckRepository {
     private static final String SELECT_ALL_DECKS = 
         "SELECT * FROM decks WHERE is_active = true ORDER BY created_at DESC";
     
+    private static final String COUNT_CARDS_FOR_DECK = 
+        "SELECT COUNT(*) FROM cards WHERE deck_id = ? AND is_active = true";
+    
+    private static final String COUNT_STUDIED_CARDS_FOR_DECK = 
+        "SELECT COUNT(DISTINCT csh.card_id) " +
+        "FROM card_study_history csh " +
+        "INNER JOIN cards c ON csh.card_id = c.id " +
+        "WHERE c.deck_id = ? AND csh.user_id = ? AND c.is_active = true";
+    
+    private static final String GET_LAST_STUDY_DATE_FOR_DECK = 
+        "SELECT MAX(csh.study_date) as last_study_date " +
+        "FROM card_study_history csh " +
+        "INNER JOIN cards c ON csh.card_id = c.id " +
+        "WHERE c.deck_id = ? AND csh.user_id = ? AND c.is_active = true";
+    
+    private static final String GET_ACCURACY_FOR_DECK = 
+        "SELECT " +
+        "  COUNT(*) as total_attempts, " +
+        "  SUM(CASE WHEN csh.was_correct = true THEN 1 ELSE 0 END) as correct_attempts " +
+        "FROM card_study_history csh " +
+        "INNER JOIN cards c ON csh.card_id = c.id " +
+        "WHERE c.deck_id = ? AND csh.user_id = ? AND c.is_active = true";
+    
+    private static final String GET_LAST_STUDY_DATE_FROM_SESSIONS = 
+        "SELECT MAX(session_date) as last_study_date " +
+        "FROM study_sessions " +
+        "WHERE deck_id = ? AND user_id = ?";
+    
     /**
      * Create a new deck
      * @param deck Deck object to create
@@ -186,6 +214,128 @@ public class DeckDAO implements DeckRepository {
         }
         
         return decks;
+    }
+    
+    /**
+     * Get the count of cards in a deck
+     * @param deckId Deck ID
+     * @return Number of active cards in the deck
+     * @throws SQLException if database error occurs
+     */
+    public int getCardCountForDeck(Long deckId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(COUNT_CARDS_FOR_DECK)) {
+            
+            statement.setLong(1, deckId);
+            
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getInt(1);
+                }
+            }
+            
+            return 0;
+        }
+    }
+    
+    /**
+     * Get the count of distinct cards that have been studied by a user in a deck
+     * @param deckId Deck ID
+     * @param userId User ID
+     * @return Number of distinct cards studied by the user in the deck
+     * @throws SQLException if database error occurs
+     */
+    public int getStudiedCardCountForDeck(Long deckId, Long userId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(COUNT_STUDIED_CARDS_FOR_DECK)) {
+            
+            statement.setLong(1, deckId);
+            statement.setLong(2, userId);
+            
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getInt(1);
+                }
+            }
+            
+            return 0;
+        }
+    }
+    
+    /**
+     * Get the last study date for a deck by a user
+     * @param deckId Deck ID
+     * @param userId User ID
+     * @return Last study date, or null if no study history exists
+     * @throws SQLException if database error occurs
+     */
+    public LocalDateTime getLastStudyDateForDeck(Long deckId, Long userId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(GET_LAST_STUDY_DATE_FOR_DECK)) {
+            
+            statement.setLong(1, deckId);
+            statement.setLong(2, userId);
+            
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    Timestamp lastStudyDate = resultSet.getTimestamp("last_study_date");
+                    if (lastStudyDate != null && !resultSet.wasNull()) {
+                        return lastStudyDate.toLocalDateTime();
+                    }
+                }
+            }
+        }
+        
+        // Fallback
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(GET_LAST_STUDY_DATE_FROM_SESSIONS)) {
+            
+            statement.setLong(1, deckId);
+            statement.setLong(2, userId);
+            
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    Timestamp lastStudyDate = resultSet.getTimestamp("last_study_date");
+                    if (lastStudyDate != null && !resultSet.wasNull()) {
+                        return lastStudyDate.toLocalDateTime();
+                    }
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Get the average accuracy for a deck by a user
+     * Accuracy is calculated as: (correct_attempts / total_attempts) * 100
+     * @param deckId Deck ID
+     * @param userId User ID
+     * @return Average accuracy as a percentage (0.0 to 100.0), or null if no attempts exist
+     * @throws SQLException if database error occurs
+     */
+    public Double getAccuracyForDeck(Long deckId, Long userId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(GET_ACCURACY_FOR_DECK)) {
+            
+            statement.setLong(1, deckId);
+            statement.setLong(2, userId);
+            
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    long totalAttempts = resultSet.getLong("total_attempts");
+                    long correctAttempts = resultSet.getLong("correct_attempts");
+                    
+                    if (totalAttempts == 0) {
+                        return null;
+                    }
+                    
+                    return ((double) correctAttempts / totalAttempts) * 100.0;
+                }
+            }
+            
+            return null;
+        }
     }
     
     /**
