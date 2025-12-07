@@ -20,40 +20,50 @@ import java.util.logging.Logger;
  */
 @WebServlet(name = "DashboardServlet", urlPatterns = {"/dashboard"})
 public class DashboardServlet extends HttpServlet {
+
     private static final Logger logger = Logger.getLogger(DashboardServlet.class.getName());
     private final DeckService deckService;
-    
+
     public DashboardServlet() {
         this.deckService = new DeckService();
     }
-    
+
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
         // Check if user is logged in
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("user") == null) {
             response.sendRedirect(request.getContextPath() + "/auth");
             return;
         }
-        
+
         try {
             User user = (User) session.getAttribute("user");
             Long userId = user.getId();
-            
-            // Get deck statistics for user
-            List<DeckStatsDTO> deckStatsList = deckService.getDeckStatisticsForUser(userId);
-            
+
+            // Get aggregated deck statistics
+            List<DeckStatsDTO> deckStats = deckService.getDeckStatisticsForUser(userId);
+
+            // Set attributes for JSP
             request.setAttribute("user", user);
-            request.setAttribute("deckStatsList", deckStatsList);
+            request.setAttribute("deckStats", deckStats);
             request.setAttribute("currentPage", "dashboard");
-            request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp").forward(request, response);
-            
+
+            // Forward to view
+            request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp")
+                    .forward(request, response);
+
         } catch (SQLException e) {
             logger.severe("Error loading dashboard: " + e.getMessage());
-            request.setAttribute("error", "Failed to load dashboard");
+
+            request.setAttribute("error", "Failed to load dashboard statistics.");
             request.setAttribute("currentPage", "dashboard");
-            request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp").forward(request, response);
+
+            request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp")
+                    .forward(request, response);
         }
     }
 }
+
