@@ -11,72 +11,95 @@ import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * Data Access Object for Deck entity
- * Handles all database operations related to decks
- * Implements the Repository pattern for data access abstraction
+ * DeckDAO
+ * ----------------------------------------
+ * Handles all CRUD operations and statistics queries
+ * related to Deck entities. Provides SQL-based data access
+ * for DeckService and other layers. Implements logic for:
+ *
+ *  - Creating decks
+ *  - Updating deck data
+ *  - Fetching decks for a user
+ *  - Soft deletion
+ *  - Statistics required by DeckStatsDTO
+ *
+ * Statistics include:
+ *  - Total number of cards in a deck
+ *  - How many unique cards a user has studied
+ *  - The last study date for that deck
+ *  - User's average accuracy (%) for that deck
  */
 public class DeckDAO implements DeckRepository {
+
     private static final Logger logger = Logger.getLogger(DeckDAO.class.getName());
-    
-    // SQL queries
-    private static final String INSERT_DECK = 
-        "INSERT INTO decks (user_id, name, description, created_at, updated_at, is_active) " +
-        "VALUES (?, ?, ?, ?, ?, ?)";
-    
-    private static final String SELECT_DECK_BY_ID = 
-        "SELECT * FROM decks WHERE id = ? AND is_active = true";
-    
-    private static final String SELECT_DECKS_BY_USER_ID = 
-        "SELECT * FROM decks WHERE user_id = ? AND is_active = true ORDER BY created_at DESC";
-    
-    private static final String UPDATE_DECK = 
-        "UPDATE decks SET name = ?, description = ?, updated_at = ? WHERE id = ?";
-    
-    private static final String DELETE_DECK = 
-        "UPDATE decks SET is_active = false, updated_at = ? WHERE id = ?";
-    
-    private static final String SELECT_ALL_DECKS = 
-        "SELECT * FROM decks WHERE is_active = true ORDER BY created_at DESC";
-    
-    private static final String COUNT_CARDS_FOR_DECK = 
-        "SELECT COUNT(*) FROM cards WHERE deck_id = ? AND is_active = true";
-    
-    private static final String COUNT_STUDIED_CARDS_FOR_DECK = 
-        "SELECT COUNT(DISTINCT csh.card_id) " +
-        "FROM card_study_history csh " +
-        "INNER JOIN cards c ON csh.card_id = c.id " +
-        "WHERE c.deck_id = ? AND csh.user_id = ? AND c.is_active = true";
-    
-    private static final String GET_LAST_STUDY_DATE_FOR_DECK = 
-        "SELECT MAX(csh.study_date) as last_study_date " +
-        "FROM card_study_history csh " +
-        "INNER JOIN cards c ON csh.card_id = c.id " +
-        "WHERE c.deck_id = ? AND csh.user_id = ? AND c.is_active = true";
-    
-    private static final String GET_ACCURACY_FOR_DECK = 
-        "SELECT " +
-        "  COUNT(*) as total_attempts, " +
-        "  SUM(CASE WHEN csh.was_correct = true THEN 1 ELSE 0 END) as correct_attempts " +
-        "FROM card_study_history csh " +
-        "INNER JOIN cards c ON csh.card_id = c.id " +
-        "WHERE c.deck_id = ? AND csh.user_id = ? AND c.is_active = true";
-    
-    private static final String GET_LAST_STUDY_DATE_FROM_SESSIONS = 
-        "SELECT MAX(session_date) as last_study_date " +
-        "FROM study_sessions " +
-        "WHERE deck_id = ? AND user_id = ?";
-    
+
+    // ======================
+    // Base CRUD Queries
+    // ======================
+
+    private static final String INSERT_DECK =
+            "INSERT INTO decks (user_id, name, description, created_at, updated_at, is_active) " +
+            "VALUES (?, ?, ?, ?, ?, ?)";
+
+    private static final String SELECT_DECK_BY_ID =
+            "SELECT * FROM decks WHERE id = ? AND is_active = true";
+
+    private static final String SELECT_DECKS_BY_USER_ID =
+            "SELECT * FROM decks WHERE user_id = ? AND is_active = true ORDER BY created_at DESC";
+
+    private static final String UPDATE_DECK =
+            "UPDATE decks SET name = ?, description = ?, updated_at = ? WHERE id = ?";
+
+    private static final String DELETE_DECK =
+            "UPDATE decks SET is_active = false, updated_at = ? WHERE id = ?";
+
+    private static final String SELECT_ALL_DECKS =
+            "SELECT * FROM decks WHERE is_active = true ORDER BY created_at DESC";
+
+
+    // ======================
+    // Statistics Queries (Used for DeckStatsDTO)
+    // ======================
+
+    /** Count active cards in a deck */
+    private static final String COUNT_CARDS_IN_DECK =
+            "SELECT COUNT(*) FROM cards WHERE deck_id = ? AND is_active = true";
+
+    /** Count unique cards studied by the user */
+    private static final String COUNT_STUDIED_CARDS_IN_DECK =
+            "SELECT COUNT(DISTINCT c.id) " +
+            "FROM cards c " +
+            "JOIN card_study_history h ON c.id = h.card_id " +
+            "WHERE c.deck_id = ? AND h.user_id = ? AND c.is_active = true";
+
+    /** Get the most recent study date */
+    private static final String LAST_STUDY_DATE_FOR_DECK =
+            "SELECT MAX(h.study_date) " +
+            "FROM cards c " +
+            "JOIN card_study_history h ON c.id = h.card_id " +
+            "WHERE c.deck_id = ? AND h.user_id = ? AND c.is_active = true";
+
+    /** Compute average accuracy for this deck */
+    private static final String ACCURACY_FOR_DECK =
+            "SELECT AVG(CASE WHEN h.was_correct = true THEN 1.0 ELSE 0.0 END) " +
+            "FROM cards c " +
+            "JOIN card_study_history h ON c.id = h.card_id " +
+            "WHERE c.deck_id = ? AND h.user_id = ? AND c.is_active = true";
+
+
+    // =====================================================================================
+    //                                         CRUD METHODS
+    // =====================================================================================
+
     /**
-     * Create a new deck
-     * @param deck Deck object to create
-     * @return Created deck with generated ID
-     * @throws SQLException if database error occurs
+     * Create a new deck and return the populated Deck object.
      */
     public Deck create(Deck deck) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(INSERT_DECK, Statement.RETURN_GENERATED_KEYS)) {
             
             LocalDateTime now = LocalDateTime.now();
+
             statement.setLong(1, deck.getUserId());
             statement.setString(2, deck.getName());
             statement.setString(3, deck.getDescription());
@@ -88,7 +111,8 @@ public class DeckDAO implements DeckRepository {
             if (affectedRows == 0) {
                 throw new SQLException("Creating deck failed, no rows affected.");
             }
-            
+
+            // Retrieve generated ID
             try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     deck.setId(generatedKeys.getLong(1));
@@ -103,34 +127,27 @@ public class DeckDAO implements DeckRepository {
             return deck;
         }
     }
-    
+
     /**
-     * Find deck by ID
-     * @param id Deck ID
-     * @return Deck object or null if not found
-     * @throws SQLException if database error occurs
+     * Retrieve a deck by its unique ID.
      */
     public Deck findById(Long id) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_DECK_BY_ID)) {
             
             statement.setLong(1, id);
-            
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return mapResultSetToDeck(resultSet);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToDeck(rs);
                 }
             }
-            
-            return null;
         }
+        return null;
     }
-    
+
     /**
-     * Find decks by user ID
-     * @param userId User ID
-     * @return List of decks belonging to the user
-     * @throws SQLException if database error occurs
+     * Retrieve all active decks belonging to a user.
      */
     public List<Deck> findByUserId(Long userId) throws SQLException {
         List<Deck> decks = new ArrayList<>();
@@ -139,28 +156,25 @@ public class DeckDAO implements DeckRepository {
              PreparedStatement statement = connection.prepareStatement(SELECT_DECKS_BY_USER_ID)) {
             
             statement.setLong(1, userId);
-            
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    decks.add(mapResultSetToDeck(resultSet));
+
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    decks.add(mapResultSetToDeck(rs));
                 }
             }
         }
-        
         return decks;
     }
-    
+
     /**
-     * Update deck information
-     * @param deck Deck object with updated information
-     * @return Updated deck object
-     * @throws SQLException if database error occurs
+     * Update the name/description for a deck.
      */
     public Deck update(Deck deck) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE_DECK)) {
             
             LocalDateTime now = LocalDateTime.now();
+
             statement.setString(1, deck.getName());
             statement.setString(2, deck.getDescription());
             statement.setTimestamp(3, Timestamp.valueOf(now));
@@ -172,16 +186,12 @@ public class DeckDAO implements DeckRepository {
             }
             
             deck.setUpdatedAt(now);
-            logger.info("Deck updated successfully: " + deck.getName());
             return deck;
         }
     }
-    
+
     /**
-     * Soft delete deck (mark as inactive)
-     * @param id Deck ID to delete
-     * @return true if deletion successful
-     * @throws SQLException if database error occurs
+     * Soft delete a deck (mark as inactive).
      */
     public boolean delete(Long id) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection();
@@ -191,178 +201,150 @@ public class DeckDAO implements DeckRepository {
             statement.setLong(2, id);
             
             int affectedRows = statement.executeUpdate();
-            logger.info("Deck deleted successfully: ID " + id);
             return affectedRows > 0;
         }
     }
-    
+
     /**
-     * Get all active decks
-     * @return List of all active decks
-     * @throws SQLException if database error occurs
+     * Retrieve all active decks in the system.
      */
     public List<Deck> findAll() throws SQLException {
         List<Deck> decks = new ArrayList<>();
         
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_ALL_DECKS);
-             ResultSet resultSet = statement.executeQuery()) {
-            
-            while (resultSet.next()) {
-                decks.add(mapResultSetToDeck(resultSet));
+             ResultSet rs = statement.executeQuery()) {
+
+            while (rs.next()) {
+                decks.add(mapResultSetToDeck(rs));
             }
         }
-        
         return decks;
     }
-    
+
+
+    // =====================================================================================
+    //                                 STATISTICS METHODS
+    // =====================================================================================
+
     /**
-     * Get the count of cards in a deck
-     * @param deckId Deck ID
-     * @return Number of active cards in the deck
-     * @throws SQLException if database error occurs
+     * Retrieves the total number of active cards in a deck.
+     * Used for calculating completionPercentage.
      */
     public int getCardCountForDeck(Long deckId) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(COUNT_CARDS_FOR_DECK)) {
+             PreparedStatement statement = connection.prepareStatement(COUNT_CARDS_IN_DECK)) {
             
             statement.setLong(1, deckId);
-            
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getInt(1);
-                }
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
             }
-            
-            return 0;
+
+        } catch (SQLException e) {
+            logger.warning("Error retrieving card count for deck " + deckId + ": " + e.getMessage());
         }
+        return 0;
     }
-    
+
     /**
-     * Get the count of distinct cards that have been studied by a user in a deck
-     * @param deckId Deck ID
-     * @param userId User ID
-     * @return Number of distinct cards studied by the user in the deck
-     * @throws SQLException if database error occurs
+     * Retrieves how many unique cards in this deck the user has studied.
+     * Used to determine the user's progress.
      */
-    public int getStudiedCardCountForDeck(Long deckId, Long userId) throws SQLException {
+    public int getStudiedCardCountForDeck(Long deckId, Long userId) {
         try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(COUNT_STUDIED_CARDS_FOR_DECK)) {
-            
+             PreparedStatement statement = connection.prepareStatement(COUNT_STUDIED_CARDS_IN_DECK)) {
+
             statement.setLong(1, deckId);
             statement.setLong(2, userId);
-            
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getInt(1);
-                }
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
             }
-            
-            return 0;
+
+        } catch (SQLException e) {
+            logger.warning("Error retrieving studied card count: deck=" + deckId + ", user=" + userId);
         }
+        return 0;
     }
-    
+
     /**
-     * Get the last study date for a deck by a user
-     * @param deckId Deck ID
-     * @param userId User ID
-     * @return Last study date, or null if no study history exists
-     * @throws SQLException if database error occurs
+     * Retrieves the most recent study date for any card in the deck by this user.
+     * Returns null if the deck has never been studied.
      */
-    public LocalDateTime getLastStudyDateForDeck(Long deckId, Long userId) throws SQLException {
+    public LocalDateTime getLastStudyDateForDeck(Long deckId, Long userId) {
         try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(GET_LAST_STUDY_DATE_FOR_DECK)) {
-            
+             PreparedStatement statement = connection.prepareStatement(LAST_STUDY_DATE_FOR_DECK)) {
+
             statement.setLong(1, deckId);
             statement.setLong(2, userId);
-            
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    Timestamp lastStudyDate = resultSet.getTimestamp("last_study_date");
-                    if (lastStudyDate != null && !resultSet.wasNull()) {
-                        return lastStudyDate.toLocalDateTime();
-                    }
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    Timestamp ts = rs.getTimestamp(1);
+                    return ts != null ? ts.toLocalDateTime() : null;
                 }
             }
+
+        } catch (SQLException e) {
+            logger.warning("Error retrieving last study date: deck=" + deckId + ", user=" + userId);
         }
-        
-        // Fallback
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(GET_LAST_STUDY_DATE_FROM_SESSIONS)) {
-            
-            statement.setLong(1, deckId);
-            statement.setLong(2, userId);
-            
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    Timestamp lastStudyDate = resultSet.getTimestamp("last_study_date");
-                    if (lastStudyDate != null && !resultSet.wasNull()) {
-                        return lastStudyDate.toLocalDateTime();
-                    }
-                }
-            }
-        }
-        
         return null;
     }
-    
+
     /**
-     * Get the average accuracy for a deck by a user
-     * Accuracy is calculated as: (correct_attempts / total_attempts) * 100
-     * @param deckId Deck ID
-     * @param userId User ID
-     * @return Average accuracy as a percentage (0.0 to 100.0), or null if no attempts exist
-     * @throws SQLException if database error occurs
+     * Computes the average accuracy for the user in this deck.
+     * Returns:
+     *   - null if no study history exists
+     *   - a Double representing accuracy percentage (0–100)
      */
-    public Double getAccuracyForDeck(Long deckId, Long userId) throws SQLException {
+    public Double getAccuracyForDeck(Long deckId, Long userId) {
         try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(GET_ACCURACY_FOR_DECK)) {
+             PreparedStatement statement = connection.prepareStatement(ACCURACY_FOR_DECK)) {
             
             statement.setLong(1, deckId);
             statement.setLong(2, userId);
-            
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    long totalAttempts = resultSet.getLong("total_attempts");
-                    long correctAttempts = resultSet.getLong("correct_attempts");
-                    
-                    if (totalAttempts == 0) {
-                        return null;
-                    }
-                    
-                    return ((double) correctAttempts / totalAttempts) * 100.0;
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    double accuracy = rs.getDouble(1);
+                    if (rs.wasNull()) return null; // No study attempts
+                    return accuracy * 100.0;       // Convert fraction to %
                 }
             }
-            
-            return null;
+
+        } catch (SQLException e) {
+            logger.warning("Error retrieving accuracy: deck=" + deckId + ", user=" + userId);
         }
+        return null;
     }
-    
+
+
+    // =====================================================================================
+    //                               INTERNAL MAPPING HELPER
+    // =====================================================================================
+
     /**
-     * Map ResultSet to Deck object
-     * @param resultSet Database result set
-     * @return Deck object
-     * @throws SQLException if mapping fails
+     * Converts a SQL ResultSet row into a Deck object.
      */
-    private Deck mapResultSetToDeck(ResultSet resultSet) throws SQLException {
+    private Deck mapResultSetToDeck(ResultSet rs) throws SQLException {
         Deck deck = new Deck();
-        deck.setId(resultSet.getLong("id"));
-        deck.setUserId(resultSet.getLong("user_id"));
-        deck.setName(resultSet.getString("name"));
-        deck.setDescription(resultSet.getString("description"));
-        
-        Timestamp createdAt = resultSet.getTimestamp("created_at");
-        if (createdAt != null) {
+
+        deck.setId(rs.getLong("id"));
+        deck.setUserId(rs.getLong("user_id"));
+        deck.setName(rs.getString("name"));
+        deck.setDescription(rs.getString("description"));
+
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        if (createdAt != null)
             deck.setCreatedAt(createdAt.toLocalDateTime());
-        }
-        
-        Timestamp updatedAt = resultSet.getTimestamp("updated_at");
-        if (updatedAt != null) {
+
+        Timestamp updatedAt = rs.getTimestamp("updated_at");
+        if (updatedAt != null)
             deck.setUpdatedAt(updatedAt.toLocalDateTime());
-        }
-        
-        deck.setActive(resultSet.getBoolean("is_active"));
-        
+
+        deck.setActive(rs.getBoolean("is_active"));
+
         return deck;
     }
 }
