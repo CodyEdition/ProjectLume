@@ -160,17 +160,17 @@
         <div class="decks-section">
             <h3>Your Decks</h3>
             <c:choose>
-                <c:when test="${not empty deckStatsList}">
+                <c:when test="${not empty formattedStatsList}">
                     <div class="deck-grid">
-                        <c:forEach var="deckStats" items="${deckStatsList}" varStatus="loop">
+                        <c:forEach var="stats" items="${formattedStatsList}" varStatus="loop">
                             <c:set var="cardNumber" value="${loop.index + 1}" />
                             <c:set var="cardNumberPadded" value="${cardNumber < 10 ? '00' : (cardNumber < 100 ? '0' : '')}${cardNumber}" />
-                            <c:set var="dateCode" value="${deckStats.dateCode}" />
+                            <c:set var="dateCode" value="${stats.dateCode}" />
                             <c:set var="serialNumber" value="${dateCode}S3" />
                             
                             <div class="collectible-card card-scanlines">
                                 <div class="card-specs-bar">
-                                    <span>DECK | ID: ${deckStats.deckId}</span>
+                                    <span>DECK | ID: ${stats.deckStats.deckId}</span>
                                     <span class="card-badge">${dateCode}</span>
                                 </div>
                                 
@@ -180,22 +180,25 @@
                                     <div class="card-content">
                                         <div>
                                             <div class="card-number">${cardNumberPadded}</div>
-                                            <div class="card-title">${deckStats.name}</div>
-                                            <div class="card-description">${deckStats.description}</div>
+                                            <div class="card-title">${stats.deckStats.name}</div>
+                                            <div class="card-description">${stats.deckStats.description}</div>
                                             <div style="margin-top: 10px; font-size: 0.9em; color: #888;">
-                                                <div>Cards: ${deckStats.totalCards} | Studied: ${deckStats.cardsStudied}</div>
-                                                <div>Completion: <fmt:formatNumber value="${deckStats.completionPercentage}" maxFractionDigits="1"/>%</div>
-                                                <c:if test="${deckStats.averageAccuracy != null}">
-                                                    <div>Accuracy: <fmt:formatNumber value="${deckStats.averageAccuracy}" maxFractionDigits="1"/>%</div>
+                                                <div>Cards: ${stats.deckStats.totalCards} | Studied: ${stats.deckStats.cardsStudied}</div>
+                                                <div>Completion: <fmt:formatNumber value="${stats.deckStats.completionPercentage}" maxFractionDigits="1"/>%</div>
+                                                <c:if test="${stats.deckStats.averageAccuracy != null}">
+                                                    <div>Accuracy: <fmt:formatNumber value="${stats.deckStats.averageAccuracy}" maxFractionDigits="1"/>%</div>
+                                                </c:if>
+                                                <c:if test="${stats.lastStudyDate != null}">
+                                                    <div>Last studied: ${stats.lastStudyDate}</div>
                                                 </c:if>
                                             </div>
                                         </div>
                                         
                                         <div class="card-actions">
-                                            <a href="${pageContext.request.contextPath}/study/${deckStats.deckId}" class="btn btn-success" title="Start studying this deck">Study</a>
-                                            <a href="${pageContext.request.contextPath}/card?deckId=${deckStats.deckId}" class="btn btn-secondary" title="View cards">View</a>
-                                            <a href="${pageContext.request.contextPath}/deck/edit/${deckStats.deckId}" class="btn btn-secondary" title="Edit deck">✎</a>
-                                            <a href="${pageContext.request.contextPath}/deck/delete/${deckStats.deckId}" class="btn btn-danger" 
+                                            <a href="${pageContext.request.contextPath}/study/${stats.deckStats.deckId}" class="btn btn-success" title="Start studying this deck">Study</a>
+                                            <a href="${pageContext.request.contextPath}/card?deckId=${stats.deckStats.deckId}" class="btn btn-secondary" title="View cards">View</a>
+                                            <a href="${pageContext.request.contextPath}/deck/edit/${stats.deckStats.deckId}" class="btn btn-secondary" title="Edit deck">✎</a>
+                                            <a href="${pageContext.request.contextPath}/deck/delete/${stats.deckStats.deckId}" class="btn btn-danger"
                                                onclick="return confirm('Are you sure you want to delete this deck?')" title="Delete deck">✕</a>
                                         </div>
                                     </div>
