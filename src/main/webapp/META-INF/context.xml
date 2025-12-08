@@ -7,30 +7,29 @@
     For production deployments, you may override these settings in:
     - $CATALINA_BASE/conf/[enginename]/[hostname]/[contextname].xml
     - Or set as context.xml in the server's Host appBase directory
+    
+    Note: Session timeout is configured in web.xml (session-config/session-timeout)
+    Note: Database connection is managed programmatically via DatabaseConnection class
 -->
 <Context>
-    <!-- Application name -->
-    <displayName>Project Lume MVP</displayName>
-    
-    <!-- Monitor web.xml and classes for changes (useful for development) -->
+    <!-- Monitor web.xml and classes for changes -->
     <WatchedResource>WEB-INF/web.xml</WatchedResource>
     <WatchedResource>WEB-INF/classes</WatchedResource>
     
     <!-- Session manager configuration optimized for Tomcat 9 -->
+    <!-- Session timeout is configured in web.xml instead -->
     <Manager className="org.apache.catalina.session.StandardManager"
              maxActiveSessions="-1"
-             processExpiresFrequency="6"
-             maxInactiveInterval="1800"
-             sessionIdLength="32"/>
+             processExpiresFrequency="6"/>
     
     <!-- Resource caching configuration optimized for Tomcat 9 -->
+    <!-- Note: cacheObjectMaxSize must be <= cacheMaxSize/20 (5000kB) -->
     <Resources cachingAllowed="true"
                cacheMaxSize="100000"
-               cacheObjectMaxSize="4096"
-               cacheTtl="60000"
-               cacheMaxObjectSize="51200"/>
+               cacheObjectMaxSize="5000"
+               cacheTtl="60000"/>
     
-    <!-- JAR Scanner configuration - exclude unnecessary scanning -->
+    <!-- JAR Scanner configuration -->
     <JarScanner>
         <JarScanFilter defaultPluggabilityScan="false"
                        defaultTldScan="true"
@@ -40,23 +39,6 @@
     
     <!-- Prevents memory leaks from abandoned connections -->
     <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener"/>
-    <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener"/>
-    
-    <!-- Connection pool configuration hints (actual pool configured in code) -->
-    <!-- Note: For production, consider using Tomcat's JNDI DataSource -->
-    <Resource name="jdbc/ProjectLumeDB"
-              auth="Container"
-              type="javax.sql.DataSource"
-              factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
-              driverClassName="com.mysql.cj.jdbc.Driver"
-              maxTotal="20"
-              maxIdle="10"
-              minIdle="5"
-              maxWaitMillis="10000"
-              testOnBorrow="true"
-              validationQuery="SELECT 1"
-              removeAbandonedOnBorrow="true"
-              removeAbandonedTimeout="300"
-              logAbandoned="true"/>
+
 </Context>
 

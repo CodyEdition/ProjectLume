@@ -19,6 +19,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <failOnMissingWebXml>false</failOnMissingWebXml>
         
+        <style.color>never</style.color>
+        <jansi.passthrough>true</jansi.passthrough>
+
         <servlet-api.version>4.0.1</servlet-api.version>
         <jsp-api.version>2.2</jsp-api.version>
         <jstl.version>1.2</jstl.version>
@@ -284,6 +287,9 @@
                     <excludes>
                         <exclude>**/WarVerificationTest.java</exclude>
                     </excludes>
+                    <systemPropertyVariables>
+                        <java.util.logging.config.file>${project.build.testOutputDirectory}/logging.properties</java.util.logging.config.file>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
             

@@ -12,9 +12,9 @@ public abstract class BaseService {
     
     protected <T> T executeCreate(CreateOperation<T> operation) throws SQLException {
         try {
-            logger.info("Starting create operation in " + getClass().getSimpleName());
+            logger.fine("Starting create operation in " + getClass().getSimpleName());
             T result = operation.execute();
-            logger.info("Create operation completed successfully in " + getClass().getSimpleName());
+            logger.fine("Create operation completed successfully in " + getClass().getSimpleName());
             return result;
         } catch (SQLException e) {
             logger.severe("Create operation failed in " + getClass().getSimpleName() + ": " + e.getMessage());
@@ -24,9 +24,9 @@ public abstract class BaseService {
     
     protected <T> T executeUpdate(UpdateOperation<T> operation) throws SQLException {
         try {
-            logger.info("Starting update operation in " + getClass().getSimpleName());
+            logger.fine("Starting update operation in " + getClass().getSimpleName());
             T result = operation.execute();
-            logger.info("Update operation completed successfully in " + getClass().getSimpleName());
+            logger.fine("Update operation completed successfully in " + getClass().getSimpleName());
             return result;
         } catch (SQLException e) {
             logger.severe("Update operation failed in " + getClass().getSimpleName() + ": " + e.getMessage());
@@ -36,9 +36,9 @@ public abstract class BaseService {
     
     protected boolean executeDelete(DeleteOperation operation) throws SQLException {
         try {
-            logger.info("Starting delete operation in " + getClass().getSimpleName());
+            logger.fine("Starting delete operation in " + getClass().getSimpleName());
             boolean result = operation.execute();
-            logger.info("Delete operation completed successfully in " + getClass().getSimpleName());
+            logger.fine("Delete operation completed successfully in " + getClass().getSimpleName());
             return result;
         } catch (SQLException e) {
             logger.severe("Delete operation failed in " + getClass().getSimpleName() + ": " + e.getMessage());
