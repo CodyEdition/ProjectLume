@@ -1,8 +1,6 @@
 package com.projectlume.servlet;
 
-import com.projectlume.dto.DeckStatsDTO;
-import com.projectlume.model.User;
-import com.projectlume.service.DeckService;
+import com.projectlume.controller.DashboardController;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -11,21 +9,18 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Dashboard servlet for the main application page
+ * Delegates to DashboardController which manages communication between presentation, domain, and data layers
  */
 @WebServlet(name = "DashboardServlet", urlPatterns = {"/dashboard"})
 public class DashboardServlet extends HttpServlet {
 
-    private static final Logger logger = Logger.getLogger(DashboardServlet.class.getName());
-    private final DeckService deckService;
+    private final DashboardController dashboardController;
 
     public DashboardServlet() {
-        this.deckService = new DeckService();
+        this.dashboardController = new DashboardController();
     }
 
     @Override
@@ -39,31 +34,13 @@ public class DashboardServlet extends HttpServlet {
             return;
         }
 
-        try {
-            User user = (User) session.getAttribute("user");
-            Long userId = user.getId();
+        // Delegate to controller (manages communication between presentation, domain, and data layers)
+        // Controller uses multi-threading for parallel processing
+        dashboardController.getDashboardData(request, response);
 
-            // Get aggregated deck statistics
-            List<DeckStatsDTO> deckStats = deckService.getDeckStatisticsForUser(userId);
-
-            // Set attributes for JSP
-            request.setAttribute("user", user);
-            request.setAttribute("deckStats", deckStats);
-            request.setAttribute("currentPage", "dashboard");
-
-            // Forward to view
-            request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp")
-                    .forward(request, response);
-
-        } catch (SQLException e) {
-            logger.severe("Error loading dashboard: " + e.getMessage());
-
-            request.setAttribute("error", "Failed to load dashboard statistics.");
-            request.setAttribute("currentPage", "dashboard");
-
-            request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp")
-                    .forward(request, response);
-        }
+        // Forward to view
+        request.getRequestDispatcher("/WEB-INF/views/dashboard.jsp")
+                .forward(request, response);
     }
 }
 

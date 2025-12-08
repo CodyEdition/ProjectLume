@@ -5,11 +5,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.Driver;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.logging.Logger;
 
 public class DatabaseInitializer {
@@ -19,9 +23,17 @@ public class DatabaseInitializer {
         try (Connection connection = DatabaseConnection.getConnection()) {
             logger.info("Starting database initialization...");
             
+            // Use DatabaseMetaData to check existing tables before initialization
+            DatabaseMetaData metaData = connection.getMetaData();
+            List<String> existingTables = getExistingTables(metaData);
+            logger.info("Existing tables found: " + existingTables.size());
+            
             String schemaFile = "schema-mysql.sql";
             String schema = readResourceFile(schemaFile);
             executeSQLScript(connection, schema);
+            
+            // Validate table structure using DatabaseMetaData after initialization
+            validateTablesAfterInit(metaData);
             
             logger.info("Database initialization completed successfully");
             return true;
@@ -33,6 +45,60 @@ public class DatabaseInitializer {
             logger.severe("Failed to read schema file: " + e.getMessage());
             return false;
         }
+    }
+    
+    /**
+     * Get list of existing tables using DatabaseMetaData.getTables()
+     */
+    private static List<String> getExistingTables(DatabaseMetaData metaData) throws SQLException {
+        List<String> tables = new ArrayList<>();
+        try (ResultSet tablesResultSet = metaData.getTables(null, null, "%", new String[]{"TABLE"})) {
+            while (tablesResultSet.next()) {
+                String tableName = tablesResultSet.getString("TABLE_NAME");
+                tables.add(tableName);
+                logger.fine("Found existing table: " + tableName);
+            }
+        }
+        return tables;
+    }
+    
+    /**
+     * Validate table structures using DatabaseMetaData after initialization
+     */
+    private static void validateTablesAfterInit(DatabaseMetaData metaData) throws SQLException {
+        String[] requiredTables = {"users", "decks", "cards", "study_sessions", "card_study_history"};
+        
+        logger.info("Validating table structures using DatabaseMetaData...");
+        try (ResultSet tablesResultSet = metaData.getTables(null, null, "%", new String[]{"TABLE"})) {
+            List<String> existingTables = new ArrayList<>();
+            while (tablesResultSet.next()) {
+                String tableName = tablesResultSet.getString("TABLE_NAME");
+                existingTables.add(tableName.toLowerCase());
+            }
+            
+            for (String requiredTable : requiredTables) {
+                if (existingTables.contains(requiredTable.toLowerCase())) {
+                    // Use DatabaseMetaData.getColumns() to validate table structure
+                    int columnCount = getColumnCount(metaData, requiredTable);
+                    logger.info("Table " + requiredTable + " validated: " + columnCount + " columns found");
+                } else {
+                    logger.warning("Required table " + requiredTable + " not found after initialization");
+                }
+            }
+        }
+    }
+    
+    /**
+     * Get column count for a table using DatabaseMetaData.getColumns()
+     */
+    private static int getColumnCount(DatabaseMetaData metaData, String tableName) throws SQLException {
+        int count = 0;
+        try (ResultSet columnsResultSet = metaData.getColumns(null, null, tableName, "%")) {
+            while (columnsResultSet.next()) {
+                count++;
+            }
+        }
+        return count;
     }
     
     private static String readResourceFile(String filename) throws IOException {

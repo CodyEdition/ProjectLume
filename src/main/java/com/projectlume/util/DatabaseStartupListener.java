@@ -22,6 +22,24 @@ public class DatabaseStartupListener implements ServletContextListener {
         logger.info("Initializing database schema and seed data (MySQL)...");
         DatabaseInitializer.initializeDatabase();
         
+        // Validate database connection and log metadata using DatabaseMetaData
+        logger.info("Validating database connection and metadata...");
+        DatabaseConnection.validateConnection();
+        
+        // Log database metadata information
+        try {
+            DatabaseMetadataUtil.getDatabaseInfo();
+            DatabaseMetadataUtil.checkSupportedFeatures();
+            logger.info("Database metadata validation completed");
+        } catch (SQLException e) {
+            logger.warning("Failed to retrieve database metadata: " + e.getMessage());
+        }
+        
+        // Initialize thread pools for multi-threading operations
+        logger.info("Initializing thread pools for multi-threading...");
+        ThreadPoolManager.getInstance(); // Initialize singleton
+        logger.info("Thread pools initialized successfully");
+        
         // Initialize Observer pattern listeners
         logger.info("Initializing event listeners...");
         EventPublisher eventPublisher = EventPublisher.getInstance();
@@ -32,6 +50,10 @@ public class DatabaseStartupListener implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
+        // Shutdown thread pools gracefully
+        logger.info("Shutting down thread pools...");
+        ThreadPoolManager.getInstance().shutdown();
+        
         // Clean up MySQL drivers and cleanup thread
         cleanupMySQLResources();
     }

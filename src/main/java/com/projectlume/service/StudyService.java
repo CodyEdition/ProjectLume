@@ -13,12 +13,14 @@ import com.projectlume.model.Deck;
 import com.projectlume.model.StudySession;
 import com.projectlume.observer.EventPublisher;
 import com.projectlume.observer.impl.StudySessionCompletedEvent;
+import com.projectlume.util.ThreadPoolManager;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Service for managing study sessions and card study history
@@ -114,6 +116,7 @@ public class StudyService extends BaseService {
     
     /**
      * End a study session and update duration
+     * Uses multi-threading for async background operations
      * @param sessionId Study session ID
      * @param durationMinutes Session duration in minutes
      * @return Completed StudySession
@@ -128,13 +131,47 @@ public class StudyService extends BaseService {
         session.setSessionDurationMinutes(durationMinutes);
         StudySession updatedSession = executeUpdate(() -> studySessionDAO.update(session));
         
-        // Publish event using Observer pattern
-        EventPublisher.getInstance().publish(
-            new StudySessionCompletedEvent(updatedSession, session.getUserId(), session.getDeckId())
-        );
+        // Use ExecutorService for async background task (multi-threading)
+        ExecutorService executor = ThreadPoolManager.getCachedThreadPool();
+        executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    // This runs in a separate thread from the thread pool
+                    logger.info("Processing study session completion in thread: " + Thread.currentThread().getName());
+                    
+                    // Publish event using Observer pattern (async)
+                    EventPublisher.getInstance().publish(
+                        new StudySessionCompletedEvent(updatedSession, session.getUserId(), session.getDeckId())
+                    );
+                    
+                    // Background cleanup of old study sessions (async operation)
+                    cleanupOldStudySessions(session.getUserId());
+                    
+                } catch (Exception e) {
+                    logger.warning("Error in async study session completion task: " + e.getMessage());
+                }
+            }
+        });
         
         logger.info("Study session ended: ID " + sessionId + ", Duration: " + durationMinutes + " minutes");
         return updatedSession;
+    }
+    
+    /**
+     * Background cleanup of old study sessions (async operation)
+     * Demonstrates multi-threading for background tasks
+     */
+    private void cleanupOldStudySessions(Long userId) {
+        try {
+            // This is a background task that runs asynchronously
+            logger.info("Cleaning up old study sessions for user: " + userId);
+            // In a real application, this would delete sessions older than a certain date
+            // For now, just log that the cleanup task ran
+            logger.fine("Study session cleanup completed for user: " + userId);
+        } catch (Exception e) {
+            logger.warning("Error during study session cleanup: " + e.getMessage());
+        }
     }
     
     /**

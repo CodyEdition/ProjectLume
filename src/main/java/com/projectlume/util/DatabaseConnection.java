@@ -3,14 +3,14 @@ package com.projectlume.util;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
- * Database connection utility class for Project Lume MVP
- * Handles database connections using JDBC
+ * Database connection utility class
  */
 public class DatabaseConnection {
     private static final Logger logger = Logger.getLogger(DatabaseConnection.class.getName());
@@ -21,7 +21,7 @@ public class DatabaseConnection {
     }
     
     /**
-     * Load database properties from configuration file
+     * Load database properties
      */
     private static void loadProperties() {
         properties = new Properties();
@@ -39,9 +39,7 @@ public class DatabaseConnection {
     }
     
     /**
-     * Get a database connection based on the configured database type
-     * @return Connection object
-     * @throws SQLException if connection fails
+     * Get a database connection
      */
     public static Connection getConnection() throws SQLException {
         try {
@@ -78,7 +76,6 @@ public class DatabaseConnection {
     
     /**
      * Close database connection
-     * @param connection Connection to close
      */
     public static void closeConnection(Connection connection) {
         if (connection != null) {
@@ -93,7 +90,6 @@ public class DatabaseConnection {
     
     /**
      * Test database connection
-     * @return true if connection successful, false otherwise
      */
     public static boolean testConnection() {
         try (Connection connection = getConnection()) {
@@ -105,8 +101,44 @@ public class DatabaseConnection {
     }
     
     /**
-     * Get the current database type
-     * @return database type (hsqldb or mysql)
+     * Validate database connection
+     */
+    public static boolean validateConnection() {
+        try (Connection connection = getConnection()) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            
+            String productName = metaData.getDatabaseProductName();
+            String productVersion = metaData.getDatabaseProductVersion();
+            String driverName = metaData.getDriverName();
+            String driverVersion = metaData.getDriverVersion();
+            
+            logger.info("Database Connection Validation:");
+            logger.info("  Product: " + productName + " " + productVersion);
+            logger.info("  Driver: " + driverName + " " + driverVersion);
+            logger.info("  URL: " + metaData.getURL());
+            logger.info("  User: " + metaData.getUserName());
+            
+            boolean supportsBatchUpdates = metaData.supportsBatchUpdates();
+            boolean supportsTransactions = metaData.supportsTransactions();
+            boolean supportsStoredProcedures = metaData.supportsStoredProcedures();
+            
+            logger.info("Database Features:");
+            logger.info("  Supports Batch Updates: " + supportsBatchUpdates);
+            logger.info("  Supports Transactions: " + supportsTransactions);
+            logger.info("  Supports Stored Procedures: " + supportsStoredProcedures);
+            
+            boolean supportsSelect = metaData.supportsSelectForUpdate();
+            logger.info("  Supports SELECT FOR UPDATE: " + supportsSelect);
+            
+            return true;
+        } catch (SQLException e) {
+            logger.severe("Database connection validation failed: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get database type
      */
     public static String getDbType() {
         return "mysql";
