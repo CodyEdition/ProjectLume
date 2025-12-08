@@ -6,7 +6,7 @@ A Java web application for flashcard study management, built with modern design 
 
 1. [Features](#features)
 2. [Quick Start](#quick-start)
-
+3. [Testing](#testing)
 
 ## Features
 
@@ -43,3 +43,10 @@ A Java web application for flashcard study management, built with modern design 
    Application will be available at: http://localhost:8081/project-lume-mvp/
 
 The WAR file includes source code, excludes test files, and is optimized for Tomcat 9+. It will be created at: `target/project-lume-mvp.war`
+
+### Testing
+
+1. **Run Test Suite**
+   ```bash
+   mvn test
+   ```
