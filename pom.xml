@@ -233,6 +233,15 @@
                             </includes>
                             <filtering>false</filtering>
                         </resource>
+                        <!-- schema script into WEB-INF/classes -->
+                        <resource>
+                            <directory>${project.basedir}/src/main/resources</directory>
+                            <targetPath>WEB-INF/classes</targetPath>
+                            <includes>
+                                <include>schema-mysql.sql</include>
+                            </includes>
+                            <filtering>false</filtering>
+                        </resource>
                     </webResources>
                     <archive>
                         <manifest>
