@@ -77,16 +77,6 @@
     
     <!-- JSP Configuration optimized for Tomcat 9 -->
     <jsp-config>
-        <!-- Tag library definitions for JSTL -->
-        <taglib>
-            <taglib-uri>http://java.sun.com/jsp/jstl/core</taglib-uri>
-            <taglib-location>/WEB-INF/tld/c.tld</taglib-location>
-        </taglib>
-        <taglib>
-            <taglib-uri>http://java.sun.com/jsp/jstl/fmt</taglib-uri>
-            <taglib-location>/WEB-INF/tld/fmt.tld</taglib-location>
-        </taglib>
-        
         <jsp-property-group>
             <url-pattern>*.jsp</url-pattern>
             <url-pattern>*.jspx</url-pattern>
