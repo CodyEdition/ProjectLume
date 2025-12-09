@@ -47,11 +47,6 @@
         <location>/WEB-INF/views/error.jsp</location>
     </error-page>
     
-    <!-- Listeners -->
-    <listener>
-        <listener-class>com.projectlume.util.DatabaseStartupListener</listener-class>
-    </listener>
-    
     <!-- Security constraints -->
     <security-constraint>
         <web-resource-collection>
@@ -82,29 +77,24 @@
     
     <!-- JSP Configuration optimized for Tomcat 9 -->
     <jsp-config>
+        <!-- Tag library definitions for JSTL -->
+        <taglib>
+            <taglib-uri>http://java.sun.com/jsp/jstl/core</taglib-uri>
+            <taglib-location>/WEB-INF/tld/c.tld</taglib-location>
+        </taglib>
+        <taglib>
+            <taglib-uri>http://java.sun.com/jsp/jstl/fmt</taglib-uri>
+            <taglib-location>/WEB-INF/tld/fmt.tld</taglib-location>
+        </taglib>
+        
         <jsp-property-group>
             <url-pattern>*.jsp</url-pattern>
             <url-pattern>*.jspx</url-pattern>
             <page-encoding>UTF-8</page-encoding>
             <scripting-invalid>false</scripting-invalid>
-            <include-prelude>/WEB-INF/views/includes/header.jsp</include-prelude>
             <trim-directive-whitespaces>true</trim-directive-whitespaces>
             <default-content-type>text/html;charset=UTF-8</default-content-type>
         </jsp-property-group>
     </jsp-config>
-    
-    <!-- Filter order configuration -->
-    <filter-mapping>
-        <filter-name>ExceptionHandlerFilter</filter-name>
-        <url-pattern>/*</url-pattern>
-        <dispatcher>REQUEST</dispatcher>
-        <dispatcher>ERROR</dispatcher>
-    </filter-mapping>
-    
-    <filter-mapping>
-        <filter-name>AuthenticationFilter</filter-name>
-        <url-pattern>/*</url-pattern>
-        <dispatcher>REQUEST</dispatcher>
-    </filter-mapping>
     
 </web-app>

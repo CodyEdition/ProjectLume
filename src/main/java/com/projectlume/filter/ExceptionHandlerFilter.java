@@ -13,6 +13,11 @@ import java.util.logging.Logger;
 /**
  * Global exception handler filter
  * Centralizes exception handling and converts exceptions to appropriate HTTP responses
+ * 
+ * IMPORTANT: This filter must be executed FIRST in the filter chain to catch
+ * exceptions from downstream filters (like AuthenticationFilter).
+ * Filter order is determined by class discovery order - this class name ensures
+ * it comes before AuthenticationFilter alphabetically.
  */
 @WebFilter(filterName = "ExceptionHandlerFilter", urlPatterns = {"/*"})
 public class ExceptionHandlerFilter implements Filter {

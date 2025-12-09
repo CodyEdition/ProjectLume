@@ -16,6 +16,9 @@ import java.util.logging.Logger;
  * Authentication filter implementing Filter pattern
  * Handles authentication checks for protected resources
  * Extracts authentication logic from servlets
+ * 
+ * NOTE: This filter runs after ExceptionHandlerFilter in the chain.
+ * Any exceptions thrown here will be caught by ExceptionHandlerFilter.
  */
 @WebFilter(filterName = "AuthenticationFilter", urlPatterns = {"/*"})
 public class AuthenticationFilter implements Filter {
