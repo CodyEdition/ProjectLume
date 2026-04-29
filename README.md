@@ -1,4 +1,4 @@
-# Project Lume MVP
+# Project Lume
 
 A Java web application for flashcard study management, built with modern design patterns and optimized for Tomcat 9 deployment.
 
