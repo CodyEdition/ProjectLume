@@ -16,6 +16,28 @@ A Java web application for flashcard study management, built with modern design 
 - Study history and statistics
 - Responsive web interface
 
+## Showcase
+
+### Deck dashboard
+
+Organise flashcard decks and track study progress.
+
+![Deck dashboard](docs/screenshots/02-dashboard.png)
+
+### Interactive study
+
+Flip flashcards to reveal answers and record your responses.
+
+![Interactive study](docs/screenshots/05-study-answer.png)
+
+### Session results
+
+Review your accuracy and performance after each study session.
+
+![Session results](docs/screenshots/06-results.png)
+
+*Screenshots show the running application with sample data.*
+
 ## Quick Start
 
 ### Prerequisites
