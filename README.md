@@ -5,8 +5,9 @@ A Java web application for flashcard study management, built with modern design 
 ## Table of Contents
 
 1. [Features](#features)
-2. [Quick Start](#quick-start)
-3. [Testing](#testing)
+2. [Showcase](#showcase)
+3. [Quick Start](#quick-start)
+4. [Testing](#testing)
 
 ## Features
 
