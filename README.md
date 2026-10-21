@@ -1,6 +1,6 @@
 # Project Lume
 
-A Java web application for flashcard study management, built with modern design patterns and optimized for Tomcat 9 deployment.
+A Java web application for flashcard study management, built with modern design patterns and optimized for deployment on Tomcat 9.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ A Java web application for flashcard study management, built with modern design 
 
 ### Deck dashboard
 
-Organise flashcard decks and track study progress.
+Organize flashcard decks and track study progress.
 
 ![Deck dashboard](docs/screenshots/02-dashboard.png)
 
@@ -63,7 +63,7 @@ Review your accuracy and performance after each study session.
    ```bash
    mvn cargo:run
    ```
-   Application will be available at: http://localhost:8081/project-lume-mvp/
+   The application will be available at: http://localhost:8081/project-lume-mvp/
 
 The WAR file includes source code, excludes test files, and is optimized for Tomcat 9+. It will be created at: `target/project-lume-mvp.war`
 
